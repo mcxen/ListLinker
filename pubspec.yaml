@@ -103,6 +103,8 @@ dependency_overrides:
   sqflite_common: 2.5.0
   sqflite: 2.3.0
   sqflite_common_ffi: 2.3.0+2
+  url_launcher: 6.1.11
+  extended_image: 7.0.2
 
 dev_dependencies:
   flutter_test:
