@@ -7,6 +7,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  FLUTTER_VERSION: "3.7.12"
+
 jobs:
   build:
     strategy:
@@ -16,36 +19,24 @@ jobs:
           - name: android
             os: ubuntu-latest
             setup: ""
-            download-file: flutter_linux_3.13.9-stable.tar.xz
-            download-url: https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.13.9-stable.tar.xz
-            extract: tar xf
             build-cmd: flutter build apk --release
             artifact-path: build/app/outputs/flutter-apk/*.apk
 
           - name: ios
             os: macos-latest
             setup: ""
-            download-file: flutter_macos_arm64_3.13.9-stable.zip
-            download-url: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_arm64_3.13.9-stable.zip
-            extract: unzip -q
             build-cmd: flutter build ios --no-codesign --release
             artifact-path: build/ios/iphoneos/Runner.app
 
           - name: macos
             os: macos-latest
             setup: ""
-            download-file: flutter_macos_arm64_3.13.9-stable.zip
-            download-url: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_arm64_3.13.9-stable.zip
-            extract: unzip -q
             build-cmd: flutter build macos --release
             artifact-path: build/macos/Build/Products/Release/*.app
 
           - name: windows
             os: windows-latest
             setup: ""
-            download-file: flutter_windows_3.13.9-stable.zip
-            download-url: https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_3.13.9-stable.zip
-            extract: 7z x -y -bsp0 -bso0 > /dev/null
             build-cmd: flutter build windows --release
             artifact-path: build/windows/runner/Release/*.exe
 
@@ -54,18 +45,12 @@ jobs:
             setup: |
               sudo apt-get update -y
               sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
-            download-file: flutter_linux_3.13.9-stable.tar.xz
-            download-url: https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.13.9-stable.tar.xz
-            extract: tar xf
             build-cmd: flutter build linux --release
             artifact-path: build/linux/x64/release/bundle
 
           - name: web
             os: ubuntu-latest
             setup: ""
-            download-file: flutter_linux_3.13.9-stable.tar.xz
-            download-url: https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.13.9-stable.tar.xz
-            extract: tar xf
             build-cmd: flutter build web --release
             artifact-path: build/web
 
@@ -77,9 +62,28 @@ jobs:
 
       - name: Install Flutter SDK
         run: |
-          curl -sL -o ${{ matrix.download-file }} "${{ matrix.download-url }}"
-          ${{ matrix.extract }} ${{ matrix.download-file }}
+          case "$RUNNER_OS" in
+            macOS)
+              FILE="flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip"
+              URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/${FILE}"
+              curl -sL -o flutter.zip "$URL"
+              unzip -q flutter.zip
+              ;;
+            Linux)
+              FILE="flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+              URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/${FILE}"
+              curl -sL -o flutter.tar.xz "$URL"
+              tar xf flutter.tar.xz
+              ;;
+            Windows)
+              FILE="flutter_windows_${FLUTTER_VERSION}-stable.zip"
+              URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/${FILE}"
+              curl -sL -o flutter.zip "$URL"
+              7z x flutter.zip -y -bsp0 -bso0 > /dev/null
+              ;;
+          esac
           echo "$GITHUB_WORKSPACE/flutter/bin" >> "$GITHUB_PATH"
+          mkdir -p "$HOME/.pub-cache/bin"
           echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
         shell: bash
 
@@ -93,7 +97,10 @@ jobs:
         run: ${{ matrix.setup }}
 
       - name: Get Flutter packages
-        run: flutter pub get
+        run: |
+          # Pin extended_image to a version compatible with Flutter 3.7.x
+          flutter pub add extended_image:7.0.2 || true
+          flutter pub get
 
       - name: Build ${{ matrix.name }}
         run: ${{ matrix.build-cmd }}
