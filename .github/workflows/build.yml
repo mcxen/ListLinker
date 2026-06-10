@@ -15,30 +15,35 @@ jobs:
         include:
           - name: android
             os: ubuntu-latest
+            arch: x64
             setup: ""
             build-cmd: flutter build apk --release
             artifact-path: build/app/outputs/flutter-apk/*.apk
 
           - name: ios
             os: macos-latest
+            arch: x64
             setup: ""
             build-cmd: flutter build ios --no-codesign --release
             artifact-path: build/ios/iphoneos/Runner.app
 
           - name: macos
             os: macos-latest
+            arch: x64
             setup: ""
             build-cmd: flutter build macos --release
             artifact-path: build/macos/Build/Products/Release/*.app
 
           - name: windows
             os: windows-latest
+            arch: x64
             setup: ""
             build-cmd: flutter build windows --release
             artifact-path: build/windows/runner/Release/*.exe
 
           - name: linux
             os: ubuntu-latest
+            arch: x64
             setup: |
               sudo apt-get update -y
               sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
@@ -47,6 +52,7 @@ jobs:
 
           - name: web
             os: ubuntu-latest
+            arch: x64
             setup: ""
             build-cmd: flutter build web --release
             artifact-path: build/web
@@ -57,10 +63,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v3
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: 'stable'
           channel: 'stable'
+          architecture: ${{ matrix.arch }}
 
       - name: Install system dependencies
         if: matrix.setup != ''
