@@ -289,14 +289,14 @@ class AlistPlayerSkinState extends State<AlistPlayerSkin> {
 
   void _enableWakelock() {
     if (!_wakelockEnable) {
-      Wakelock.enable();
+      WakelockPlus.enable();
       _wakelockEnable = true;
     }
   }
 
   void _disableWakelock() {
     if (!_wakelockEnable) {
-      Wakelock.disable();
+      WakelockPlus.disable();
       _wakelockEnable = false;
     }
   }

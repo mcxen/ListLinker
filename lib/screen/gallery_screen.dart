@@ -1,4 +1,4 @@
-import 'dart:io' if (dart.library.html) '';
+import 'dart:io' as io;
 import 'dart:math';
 
 import 'package:list_linker/database/alist_database_controller.dart';
@@ -189,8 +189,11 @@ class GalleryController extends GetxController {
         var record = await databaseController.downloadRecordRecordDao
             .findRecordByRemotePath(
                 user.serverUrl, user.username, file.remotePath);
-        if (record != null && File(record.localPath).existsSync()) {
-          file.localPath = record.localPath;
+        if (record != null) {
+          var localFile = io.File(record.localPath);
+          if (localFile.existsSync()) {
+            file.localPath = record.localPath;
+          }
         }
       }
 
@@ -214,7 +217,7 @@ class GalleryController extends GetxController {
       return;
     }
 
-    if (Platform.isAndroid && !(await AlistPlugin.isScopedStorage())) {
+    if (io.Platform.isAndroid && !(await AlistPlugin.isScopedStorage())) {
       if (!await Permission.storage.isGranted) {
         var storagePermissionStatus = await Permission.storage.request();
         if (!storagePermissionStatus.isGranted) {
@@ -236,17 +239,19 @@ class GalleryController extends GetxController {
               SmartDialog.showToast(Intl.galleryScreen_savePhotoSucceed.tr));
       return;
     }
-    File? cacheFile = await getCachedImageFile(url);
+    
+    var cacheFile = await getCachedImageFile(url);
     if (cacheFile == null) {
       SmartDialog.showToast(Intl.galleryScreen_loadPhotoFailed.tr);
       return;
     }
 
-    var tmpFilePath = p.join(File(cacheFile.path).parent.path, name);
-    await cacheFile.copy(tmpFilePath);
-    await ImageGallerySaver.saveFile(tmpFilePath, name: name).then((value) =>
+    var cacheFilePath = cacheFile.path;
+    var tmpFile = io.File(p.join(io.File(cacheFilePath).parent.path, name));
+    await io.File(cacheFilePath).copy(tmpFile.path);
+    await ImageGallerySaver.saveFile(tmpFile.path, name: name).then((value) =>
         SmartDialog.showToast(Intl.galleryScreen_savePhotoSucceed.tr));
-    await File(tmpFilePath).delete();
+    await tmpFile.delete();
   }
 
   String? _makeSavedFileName(String originalName) {
@@ -254,7 +259,7 @@ class GalleryController extends GetxController {
       return originalName;
     }
     
-    if (Platform.isIOS) {
+    if (io.Platform.isIOS) {
       return originalName;
     } else {
       String extension = "";
@@ -295,25 +300,8 @@ class _ImageContainer extends StatelessWidget {
       initialAlignment: InitialAlignment.center,
     );
 
-    if (localPath != null && localPath!.isNotEmpty) {
-      return ExtendedImage.file(
-        File(localPath!),
-        fit: BoxFit.contain,
-        mode: ExtendedImageMode.gesture,
-        initGestureConfigHandler: (state) {
-          return gestureConfig;
-        },
-        onDoubleTap: (ExtendedImageGestureState state) {
-          // Log.d("currentScale=${state.gestureDetails?.totalScale}");
-          var currentScale = state.gestureDetails?.totalScale ?? 1.0;
-          if (currentScale >= 2.0) {
-            state.handleDoubleTap(scale: 1);
-          } else {
-            state.handleDoubleTap(scale: min(currentScale + 1, 3));
-          }
-        },
-      );
-    } else {
+    // Web platform or no local path: use network image
+    if (kIsWeb || localPath == null || localPath!.isEmpty) {
       return ExtendedImage.network(
         url,
         fit: BoxFit.contain,
@@ -322,7 +310,6 @@ class _ImageContainer extends StatelessWidget {
           return gestureConfig;
         },
         onDoubleTap: (ExtendedImageGestureState state) {
-          // Log.d("currentScale=${state.gestureDetails?.totalScale}");
           var currentScale = state.gestureDetails?.totalScale ?? 1.0;
           if (currentScale >= 2.0) {
             state.handleDoubleTap(scale: 1);
@@ -332,6 +319,24 @@ class _ImageContainer extends StatelessWidget {
         },
       );
     }
+    
+    // Native platform with local path: use network with file:// URI
+    return ExtendedImage.network(
+      Uri.file(localPath!).toString(),
+      fit: BoxFit.contain,
+      mode: ExtendedImageMode.gesture,
+      initGestureConfigHandler: (state) {
+        return gestureConfig;
+      },
+      onDoubleTap: (ExtendedImageGestureState state) {
+        var currentScale = state.gestureDetails?.totalScale ?? 1.0;
+        if (currentScale >= 2.0) {
+          state.handleDoubleTap(scale: 1);
+        } else {
+          state.handleDoubleTap(scale: min(currentScale + 1, 3));
+        }
+      },
+    );
   }
 }
 

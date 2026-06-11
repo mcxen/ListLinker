@@ -14,19 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Flutter SDK
-        run: |
-          curl -sL -o flutter.tar.xz \
-            "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
-          tar xf flutter.tar.xz
-          echo "$GITHUB_WORKSPACE/flutter/bin" >> "$GITHUB_PATH"
-        shell: bash
-
-      - name: Run flutter doctor
-        run: |
-          flutter config --no-analytics
-          flutter doctor
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
 
       - name: Get Flutter packages
         run: flutter pub get
@@ -47,18 +43,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Flutter SDK
-        run: |
-          curl -sL -o flutter.zip \
-            "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip"
-          unzip -q flutter.zip
-          echo "$GITHUB_WORKSPACE/flutter/bin" >> "$GITHUB_PATH"
-
-      - name: Run flutter doctor
-        run: |
-          flutter config --no-analytics
-          flutter doctor
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
 
       - name: Get Flutter packages
         run: flutter pub get
@@ -82,23 +71,80 @@ jobs:
           name: listlinker-ios-ipa
           path: build/ios/iphoneos/listlinker-ios.ipa
 
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter packages
+        run: flutter pub get
+
+      - name: Generate database code
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Create macOS archive
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r listlinker-macos.zip ListLinker.app
+
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: listlinker-macos
+          path: build/macos/Build/Products/Release/listlinker-macos.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: Get Flutter packages
+        run: flutter pub get
+
+      - name: Generate database code
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs
+
+      - name: Build Linux
+        run: flutter build linux --release
+
+      - name: Create Linux archive
+        run: |
+          cd build/linux/x64/release
+          tar czf listlinker-linux.tar.gz bundle
+
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v4
+        with:
+          name: listlinker-linux
+          path: build/linux/x64/release/listlinker-linux.tar.gz
+
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Flutter SDK
-        run: |
-          curl -sL -o flutter.zip \
-            "https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_${FLUTTER_VERSION}-stable.zip"
-          7z x flutter.zip -y -bsp0 -bso0
-          echo "$env:GITHUB_WORKSPACE\flutter\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        shell: pwsh
-
-      - name: Run flutter doctor
-        run: |
-          flutter config --no-analytics
-          flutter doctor
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
 
       - name: Get Flutter packages
         run: flutter pub get
@@ -111,7 +157,7 @@ jobs:
 
       - name: Create Windows archive
         run: |
-          cd build/windows/runner/Release
+          cd build/windows/x64/runner/Release
           7z a -tzip listlinker-windows.zip *
         shell: pwsh
 
@@ -119,10 +165,40 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: listlinker-windows
-          path: build/windows/runner/Release/listlinker-windows.zip
+          path: build/windows/x64/runner/Release/listlinker-windows.zip
+
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter packages
+        run: flutter pub get
+
+      - name: Generate database code
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs
+
+      - name: Build Web
+        run: flutter build web --release
+
+      - name: Create Web archive
+        run: |
+          cd build
+          tar czf listlinker-web.tar.gz web
+
+      - name: Upload Web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: listlinker-web
+          path: build/listlinker-web.tar.gz
 
   create-release:
-    needs: [build-android, build-ios, build-windows]
+    needs: [build-android, build-ios, build-macos, build-linux, build-windows, build-web]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -136,5 +212,8 @@ jobs:
           files: |
             listlinker-android-apk/app-release.apk
             listlinker-ios-ipa/listlinker-ios.ipa
+            listlinker-macos/listlinker-macos.zip
+            listlinker-linux/listlinker-linux.tar.gz
             listlinker-windows/listlinker-windows.zip
+            listlinker-web/listlinker-web.tar.gz
           generate_release_notes: true
