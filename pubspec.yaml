@@ -92,7 +92,7 @@ dependencies:
   # device_info
   device_info_plus: 9.0.2
   rxdart: ^0.27.7
-  url_launcher: ^6.1.12
+  url_launcher: ^6.0.20
   image_gallery_saver: ^2.0.3
   uuid: ^3.0.7
   pull_to_refresh: ^2.0.0
@@ -100,6 +100,7 @@ dependencies:
 
 dependency_overrides:
   win32: 4.1.4
+  url_launcher_ios: 6.1.4
 
 dev_dependencies:
   flutter_test:

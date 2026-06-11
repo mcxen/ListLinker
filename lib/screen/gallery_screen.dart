@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:html' show File;
 import 'dart:math';
 
 import 'package:list_linker/database/alist_database_controller.dart';

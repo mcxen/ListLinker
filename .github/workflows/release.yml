@@ -1,0 +1,140 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: "3.19.6"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flutter SDK
+        run: |
+          curl -sL -o flutter.tar.xz \
+            "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+          tar xf flutter.tar.xz
+          echo "$GITHUB_WORKSPACE/flutter/bin" >> "$GITHUB_PATH"
+        shell: bash
+
+      - name: Run flutter doctor
+        run: |
+          flutter config --no-analytics
+          flutter doctor
+
+      - name: Get Flutter packages
+        run: flutter pub get
+
+      - name: Generate database code
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: listlinker-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flutter SDK
+        run: |
+          curl -sL -o flutter.zip \
+            "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip"
+          unzip -q flutter.zip
+          echo "$GITHUB_WORKSPACE/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Run flutter doctor
+        run: |
+          flutter config --no-analytics
+          flutter doctor
+
+      - name: Get Flutter packages
+        run: flutter pub get
+
+      - name: Generate database code
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs
+
+      - name: Build iOS
+        run: flutter build ios --no-codesign --release
+
+      - name: Create IPA archive
+        run: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r listlinker-ios.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: listlinker-ios-ipa
+          path: build/ios/iphoneos/listlinker-ios.ipa
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flutter SDK
+        run: |
+          curl -sL -o flutter.zip \
+            "https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_${FLUTTER_VERSION}-stable.zip"
+          7z x flutter.zip -y -bsp0 -bso0
+          echo "$env:GITHUB_WORKSPACE\flutter\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Run flutter doctor
+        run: |
+          flutter config --no-analytics
+          flutter doctor
+
+      - name: Get Flutter packages
+        run: flutter pub get
+
+      - name: Generate database code
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Create Windows archive
+        run: |
+          cd build/windows/runner/Release
+          7z a -tzip listlinker-windows.zip *
+        shell: pwsh
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: listlinker-windows
+          path: build/windows/runner/Release/listlinker-windows.zip
+
+  create-release:
+    needs: [build-android, build-ios, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            listlinker-android-apk/app-release.apk
+            listlinker-ios-ipa/listlinker-ios.ipa
+            listlinker-windows/listlinker-windows.zip
+          generate_release_notes: true

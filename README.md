@@ -1,150 +1,116 @@
+
 # ListLinker
 
-一个基于 Flutter 开发的跨平台文件管理客户端，支持 OpenList 和 Alist 文件管理服务器。
+一个基于 Flutter 开发的跨平台文件管理客户端，为 [OpenList](https://github.com/alist-org/alist) / [Alist](https://github.com/alist-org/alist) 文件管理服务器提供原生的移动端体验。
 
-## 项目简介
+## 简介
 
-ListLinker 是一款功能强大的移动端文件管理应用，采用 Flutter 框架开发，支持 Android 和 iOS 平台。它为用户提供了便捷的文件访问和管理体验，让您可以随时随地浏览、预览和管理服务器上的各类文件。
+ListLinker 是一款功能丰富的文件管理应用，支持 Android、iOS、macOS、Windows、Linux 和 Web 六大平台。它为用户提供了流畅的文件浏览、多媒体播放和文件管理体验，可随时随地连接您的 Alist 服务器，像使用本地文件管理器一样操作云端文件。
 
-## 技术栈
+## 功能特性
 
-- **框架**: Flutter SDK (>=2.19.6 <3.0.0)
-- **状态管理**: GetX (^4.6.5)
-- **网络请求**: Dio (^5.1.1)
-- **本地存储**: SharedPreferences, SP_Util, Floor Database
-- **多媒体播放**:
-  - 视频播放: flutter_aliplayer
-  - 音频播放: just_audio + just_audio_background
-- **文件处理**:
-  - PDF 阅读: flutter_pdfview
-  - 图片加载: extended_image
-  - 文档选择: flutter_document_picker
-- **UI 组件**:
-  - 对话框: flutter_smart_dialog
-  - 侧滑菜单: flutter_slidable
-  - 网格布局: flutter_staggered_grid_view
-  - 下拉刷新: pull_to_refresh
-- **其他功能**:
-  - WebView: flutter_inappwebview
-  - 权限管理: permission_handler
-  - 设备信息: device_info_plus, package_info_plus
+**文件管理** — 浏览服务器文件与文件夹，支持文件搜索、收藏夹、最近访问记录，以及文件夹密码保护和双因素认证（2FA）。
 
-## 核心功能
+**多媒体播放** — 内置视频播放器（支持横屏、倍速播放、字幕、音轨切换、硬件加速），音频播放器（播放列表、后台播放、单曲循环、随机播放），图片浏览器（手势缩放、滑动浏览、保存至相册），以及 PDF 和文本文件预览。
 
-### 文件管理
-- 📁 浏览服务器文件和文件夹
-- 🔍 文件搜索功能
-- ⭐ 收藏夹管理
-- 📝 最近访问记录
-- 🔐 文件夹密码保护
+**文件操作** — 支持文件下载管理（后台下载、断点续传、队列控制）、文件上传（图片、视频、文档）、复制/移动文件、删除与重命名、新建文件夹、分享文件链接。
 
-### 媒体播放
-- 🎥 在线视频播放，支持多种格式
-- 🎵 音频播放器，支持后台播放
-- 🖼️ 图片浏览和缩放
-- 📄 PDF 文档阅读
-- 📊 文本文件预览
+**用户体验** — Material 3 设计语言，深色/浅色主题自动切换，中英双语支持，自适应界面设计，应用内版本更新检测。
 
-### 文件操作
-- ⬇️ 文件下载管理
-- ⬆️ 文件上传（支持图片、视频、文档）
-- 📋 复制和移动文件
-- 🗑️ 删除文件
-- ✏️ 重命名文件
-- 📤 分享文件
+## 技术架构
 
-### 用户体验
-- 🌓 深色模式支持
-- 🌍 多语言支持（中文、英文）
-- 💾 离线缓存管理
-- 📱 自适应界面设计
-- 🔔 下载进度通知
+| 模块 | 技术选型 |
+|------|---------|
+| 框架 | Flutter 3.13.x (Dart >=3.0) |
+| 状态管理 | GetX |
+| 网络请求 | Dio |
+| 本地数据库 | Floor (SQLite) |
+| 视频播放 | flutter_aliplayer / GSYVideoPlayer (Android) |
+| 音频播放 | just_audio + just_audio_background |
+| 图片加载 | extended_image |
+| PDF 阅读 | flutter_pdfview |
+| WebView | flutter_inappwebview |
 
-## 使用指南
+## 支持平台
 
-### 安装要求
+| 平台 | 最低版本 | 状态 |
+|------|---------|------|
+| Android | 5.0 (API 21) | ✅ |
+| iOS | 12.0 | ✅ |
+| macOS | — | ✅ |
+| Windows | — | ✅ |
+| Linux | — | ✅ |
+| Web | — | ✅ |
 
-- **Android**: Android 5.0 (API 21) 及以上
-- **iOS**: iOS 12.0 及以上
-- **开发环境**: Flutter SDK 2.19.6 或更高版本
+## 快速开始
 
-### 构建项目
+### 环境要求
 
-1. **克隆项目**
+- Flutter SDK >= 3.13.8
+- Dart SDK >= 3.0
+- [FVM](https://fvm.app/) (推荐，项目已配置 FVM)
+
+### 构建步骤
+
 ```bash
-git clone <repository-url>
+# 1. 克隆仓库
+git clone https://github.com/mcxen/ListLinker.git
 cd ListLinker
-```
 
-2. **安装依赖**
-```bash
+# 2. 安装依赖
 flutter pub get
-```
 
-3. **生成数据库代码**
-```bash
+# 3. 生成数据库代码（Floor）
 flutter packages pub run build_runner build
+
+# 4. 运行
+flutter run
 ```
 
-4. **运行项目**
+如果使用 FVM：
+
 ```bash
-# Android
-flutter run
-
-# iOS
-flutter run
+fvm install
+fvm flutter pub get
+fvm flutter packages pub run build_runner build
+fvm flutter run
 ```
 
-### 配置服务器
+### 服务器配置
 
-1. 启动应用后，进入登录界面
-2. 输入您的服务器地址（支持 HTTP/HTTPS）
-   - 格式: `http://example.com:5244` 或 `https://example.com`
-3. 输入用户名和密码（如需登录）
-4. 或选择"游客模式"进行访问
+启动应用后在登录界面输入您的 Alist / OpenList 服务器地址（如 `http://example.com:5244` 或 `https://example.com`），填写用户名和密码后即可连接。也支持以游客模式匿名访问公开资源。
 
-### 主要功能使用
+## 项目结构
 
-#### 文件浏览
-- 点击文件夹进入目录
-- 长按文件显示操作菜单
-- 滑动返回上级目录
+```
+lib/
+├── database/          # Floor 数据库定义与 DAO
+├── entity/            # 数据模型与 JSON 序列化
+├── generated/         # 生成的代码（主题色、JSON 解析）
+├── l10n/              # 国际化资源（中/英）
+├── net/               # 网络层（Dio 封装、拦截器、错误处理）
+├── screen/            # 页面（文件列表、播放器、设置等）
+├── util/              # 工具类（下载管理、文件类型、排序等）
+├── widget/            # 自定义组件
+├── router.dart        # 路由配置
+└── main.dart          # 入口
+```
 
-#### 下载文件
-- 点击文件选择"下载"
-- 在"下载管理"中查看进度
-- 支持断点续传
+## CI/CD
 
-#### 上传文件
-- 点击底部 "+" 按钮
-- 选择文件类型（图片、视频、文档）
-- 选择文件并上传
+项目使用 GitHub Actions 实现全平台自动构建。每次推送至 `main` 分支或提交 Pull Request 时，将自动触发 Android、iOS、macOS、Windows、Linux 和 Web 六个平台的构建流水线，构建产物以 Artifact 形式上传。
 
-#### 播放媒体
-- 视频: 点击视频文件直接播放，支持横屏、倍速、字幕
-- 音频: 支持播放列表、后台播放、循环模式
-- 图片: 支持手势缩放、滑动浏览
-
-### 设置选项
-
-- **下载设置**: 设置最大并发下载数、默认下载路径
-- **播放器设置**: 配置默认播放器、硬件加速等
-- **缓存管理**: 清理图片缓存、视频缓存
-- **账户管理**: 切换账户、管理多个服务器
-
-## 许可证
-
-本项目基于 [LICENSE](LICENSE) 文件中的许可证发布。
+## 截图
 
 ## 相关链接
 
-- [OpenList 项目](https://github.com/alist-org/alist)
+- [Alist 项目](https://github.com/alist-org/alist) — 一个支持多种存储的文件列表程序
 - [Flutter 官方文档](https://flutter.dev/docs)
 
 ## 贡献
 
-欢迎提交 Issue 和 Pull Request！
+欢迎提交 Issue 和 Pull Request。如果您有好的建议或发现了 Bug，请通过 [GitHub Issues](https://github.com/mcxen/ListLinker/issues) 反馈。
 
 ---
 
-**版本**: 1.1.1+13
+**当前版本**: 1.1.1+13
