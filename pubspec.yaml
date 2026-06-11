@@ -100,7 +100,7 @@ dependencies:
 
 dependency_overrides:
   url_launcher_ios: 6.1.4
-  win32: ^5.5.4
+  win32: ">=5.5.4 <5.12.0"
 
 dev_dependencies:
   flutter_test:
