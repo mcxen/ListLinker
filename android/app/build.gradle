@@ -114,14 +114,4 @@ dependencies {
 //    implementation 'com.github.CarGuo.GSYVideoPlayer:gsyVideoPlayer-arm64:v8.4.0-release-jitpack'
 //    implementation 'com.github.CarGuo.GSYVideoPlayer:gsyVideoPlayer-armv7a:v8.4.0-release-jitpack'
     implementation 'com.github.CarGuo.GSYVideoPlayer:gsyVideoPlayer-ex_so:v8.4.0-release-jitpack'
-
-    // 约束 transitives: AGP 7.4.2 最高支持 core 1.12.x
-    constraints {
-        implementation('androidx.core:core:1.12.0') {
-            because '1.16.0 requires AGP 8.6.0+'
-        }
-        implementation('androidx.core:core-ktx:1.12.0') {
-            because '1.16.0 requires AGP 8.6.0+'
-        }
-    }
 }

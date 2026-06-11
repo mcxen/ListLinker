@@ -28,6 +28,16 @@ subprojects {
     project.evaluationDependsOn(':app')
 }
 
+// 强制 core 版本兼容 AGP 7.4.2
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.core:core:1.12.0'
+            force 'androidx.core:core-ktx:1.12.0'
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
