@@ -65,6 +65,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Install Android SDK 35
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" 2>&1 || echo "SDK 35 may already be available"
+
       - name: Install Flutter SDK
         run: |
           case "$RUNNER_OS" in
