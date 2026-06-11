@@ -1,4 +1,4 @@
-import 'dart:io' if (dart.library.html) 'dart:html' show File;
+import 'dart:io' if (dart.library.html) '';
 import 'dart:math';
 
 import 'package:list_linker/database/alist_database_controller.dart';
@@ -10,6 +10,7 @@ import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/widget/overflow_text.dart';
 import 'package:extended_image/extended_image.dart';
 import 'package:flustars/flustars.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -165,6 +166,19 @@ class GalleryController extends GetxController {
   }
 
   Future<void> _initUrls(List<PhotoItem> files) async {
+    if (kIsWeb) {
+      List<String> urls = [];
+      for (var file in files) {
+        var url = await FileUtils.makeFileLink(file.remotePath, file.sign);
+        if (url == null) {
+          break;
+        }
+        urls.add(url);
+      }
+      this.urls.value = urls;
+      return;
+    }
+
     AlistDatabaseController databaseController = Get.find();
     UserController userController = Get.find();
     var user = userController.user.value;
@@ -195,6 +209,11 @@ class GalleryController extends GetxController {
   }
 
   Future<void> saveToAlbum(int index) async {
+    if (kIsWeb) {
+      SmartDialog.showToast('Web platform does not support save to album');
+      return;
+    }
+
     if (Platform.isAndroid && !(await AlistPlugin.isScopedStorage())) {
       if (!await Permission.storage.isGranted) {
         var storagePermissionStatus = await Permission.storage.request();
@@ -231,6 +250,10 @@ class GalleryController extends GetxController {
   }
 
   String? _makeSavedFileName(String originalName) {
+    if (kIsWeb) {
+      return originalName;
+    }
+    
     if (Platform.isIOS) {
       return originalName;
     } else {

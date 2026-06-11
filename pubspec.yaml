@@ -60,7 +60,7 @@ dependencies:
   # image loader
   extended_image: ^8.1.1
   # screen hibernation control
-  wakelock: ^0.6.2
+  wakelock_plus: ^1.2.0
   # database
   floor: 1.4.2
   path_provider: ^2.0.15
@@ -99,7 +99,6 @@ dependencies:
   flutter_staggered_grid_view: 0.7.0
 
 dependency_overrides:
-  win32: 4.1.4
   url_launcher_ios: 6.1.4
 
 dev_dependencies:
