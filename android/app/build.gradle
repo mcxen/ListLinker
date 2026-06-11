@@ -93,10 +93,8 @@ android {
         }
     }
 
-    packaging {
-        resources {
-            pickFirsts += ['lib/*/libc++_shared.so']
-        }
+    packagingOptions {
+        pickFirst 'lib/*/libc++_shared.so'
     }
 }
 
