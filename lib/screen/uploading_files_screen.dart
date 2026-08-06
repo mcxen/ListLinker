@@ -7,6 +7,7 @@ import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:flustars/flustars.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -20,6 +21,7 @@ class UploadingFilesScreen extends StatelessWidget {
       appbarTitle: Text(Intl.screenName_uploadingFiles.tr),
       body: Obx(
         () => ListView.separated(
+          padding: WidgetUtils.listViewPadding(context),
           itemBuilder: (context, index) {
             var item = controller.allFiles[index];
             return _buildUploadingFileItem(context, controller, item);

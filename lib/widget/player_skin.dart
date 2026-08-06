@@ -397,8 +397,11 @@ class AlistPlayerSkinState extends State<AlistPlayerSkin> {
                     padding: const EdgeInsets.only(right: 5.0, left: 5),
                     child: Text(
                       _duration2String(_currentPos),
-                      style:
-                          const TextStyle(fontSize: 14.0, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 14.0,
+                        color: Colors.white,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
                     ),
                   )
                 : const SizedBox(),
@@ -1057,6 +1060,7 @@ class _DurationTextWidget extends StatelessWidget {
             style: const TextStyle(
               fontSize: 14.0,
               color: Colors.white,
+              fontFeatures: [FontFeature.tabularFigures()],
             ),
           ));
     }

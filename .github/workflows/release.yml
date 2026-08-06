@@ -202,15 +202,21 @@ jobs:
   create-release:
     needs: [build-android, build-ios, build-macos, build-linux, build-windows, build-web]
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: ListLinker ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
           files: |
             listlinker-android-apk/app-release.apk
             listlinker-ios-ipa/listlinker-ios.ipa
@@ -218,4 +224,5 @@ jobs:
             listlinker-linux/listlinker-linux.tar.gz
             listlinker-windows/listlinker-windows.zip
             listlinker-web/listlinker-web.tar.gz
-          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

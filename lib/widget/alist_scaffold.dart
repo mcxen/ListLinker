@@ -58,7 +58,10 @@ class AlistScaffold extends StatelessWidget {
                   title: appbarTitle,
                   actions: appbarActions,
                 ),
-          body: SafeArea(child: body),
+          // Keep top/side safe insets; leave bottom free so scrollables can
+          // use MediaQuery.viewPadding.bottom as list end padding instead of
+          // shrinking the viewport (system nav bar coverage fix).
+          body: SafeArea(bottom: false, child: body),
         ));
   }
 }

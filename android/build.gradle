@@ -1,22 +1,30 @@
 buildscript {
     ext.kotlin_version = '1.9.10'
     repositories {
+        // Prefer mirrors first (TLS issues with dl.google.com in some networks)
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
         google()
         mavenCentral()
+        gradlePluginPortal()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath 'com.android.tools.build:gradle:8.1.4'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
 allprojects {
     repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://jitpack.io' }
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
-        maven { url "https://maven.aliyun.com/repository/public" }
     }
 }
 
@@ -24,16 +32,50 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
-subprojects {
-    project.evaluationDependsOn(':app')
-}
 
-// 强制 core 版本兼容 AGP 7.4.2
+// Align androidx.core so AppCompat can see OnUserLeaveHintProvider etc.
 allprojects {
     configurations.all {
         resolutionStrategy {
-            force 'androidx.core:core:1.12.0'
-            force 'androidx.core:core-ktx:1.12.0'
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.core:core-ktx:1.13.1'
+        }
+    }
+}
+
+// AGP 8 requires namespace; inject from AndroidManifest package for old plugins.
+// Also align Java/Kotlin JVM targets across Flutter plugins.
+subprojects { sub ->
+    sub.pluginManager.withPlugin("com.android.library") {
+        def androidExt = sub.extensions.findByName("android")
+        if (androidExt != null && androidExt.namespace == null) {
+            def manifest = sub.file("src/main/AndroidManifest.xml")
+            if (manifest.exists()) {
+                def m = manifest.getText("UTF-8") =~ /package="([^"]+)"/
+                if (m.find()) {
+                    androidExt.namespace = m.group(1)
+                    println "Injected namespace ${m.group(1)} for ${sub.name}"
+                }
+            }
+        }
+    }
+    sub.afterEvaluate {
+        if (sub.extensions.findByName("android") != null) {
+            sub.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        sub.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+        sub.tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
         }
     }
 }

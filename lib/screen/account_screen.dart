@@ -11,6 +11,7 @@ import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:flustars/flustars.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -34,11 +35,11 @@ class AccountScreen extends StatelessWidget {
           ),
         ),
       ],
-      body: Obx(() => _buildBody(controller)),
+      body: Obx(() => _buildBody(context, controller)),
     );
   }
 
-  _buildBody(AccountScreenController controller) {
+  _buildBody(BuildContext context, AccountScreenController controller) {
     if (controller.loading.value) {
       return const LinearProgressIndicator(
         backgroundColor: Colors.transparent,
@@ -47,6 +48,7 @@ class AccountScreen extends StatelessWidget {
     }
 
     Widget listView = ListView.builder(
+      padding: WidgetUtils.listViewPadding(context),
       itemBuilder: (context, index) {
         final Server itemData = controller.accountList[index];
         return Obx(() => _listItem(itemData, controller));
@@ -182,6 +184,7 @@ class AccountScreenController extends GetxController {
     }
 
     Widget listView = ListView.builder(
+      padding: WidgetUtils.listViewPadding(context),
       itemBuilder: (context, index) {
         final Server itemData = accountList[index];
         return _ListItem(

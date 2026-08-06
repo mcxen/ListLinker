@@ -5,7 +5,7 @@ import 'package:list_linker/util/global.dart';
 import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:dio/dio.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:list_linker/widget/smooth_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -133,8 +133,11 @@ class _ListItem extends StatelessWidget {
         SizedBox(
           width: 202,
           height: 202,
-          child: ExtendedImage.network(
-            data.imageSmall,
+          child: SmoothNetworkImage(
+            url: data.imageSmall,
+            width: 202,
+            height: 202,
+            fit: BoxFit.contain,
           ),
         ),
         const SizedBox(

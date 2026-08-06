@@ -1,6 +1,7 @@
 import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/util/file_utils.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:list_linker/util/string_utils.dart';
+import 'package:list_linker/widget/smooth_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -35,13 +36,13 @@ class FileDetailsDialog extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildInfoRow("${Intl.fileDetailsDialog_name.tr}:", name),
-        if (size != null && size!.isNotEmpty)
-          _buildInfoRow("${Intl.fileDetailsDialog_size.tr}:", size!),
-        _buildInfoRow("${Intl.fileDetailsDialog_where.tr}:", path),
-        _buildInfoRow("${Intl.fileDetailsDialog_modified.tr}:", modified),
-        if (provider != null && provider!.isNotEmpty)
-          _buildInfoRow("${Intl.fileDetailsDialog_provider.tr}:", provider!),
+        _buildInfoRow("${Intl.fileDetailsDialog_name.tr}:", name.orPlaceholder()),
+        if (size.isUsable)
+          _buildInfoRow("${Intl.fileDetailsDialog_size.tr}:", size.orPlaceholder()),
+        _buildInfoRow("${Intl.fileDetailsDialog_where.tr}:", path.orPlaceholder()),
+        _buildInfoRow("${Intl.fileDetailsDialog_modified.tr}:", modified.orPlaceholder()),
+        if (provider.isUsable)
+          _buildInfoRow("${Intl.fileDetailsDialog_provider.tr}:", provider.orPlaceholder()),
         if (thumb != null && thumb!.isNotEmpty)
           _buildThumb(thumb!, FileUtils.getFileIcon(false, name))
       ],
@@ -73,24 +74,13 @@ class FileDetailsDialog extends StatelessWidget {
     String thumbnail = FileUtils.getCompleteThumbnail(thumb)!;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
-      child: ExtendedImage.network(
-        thumbnail,
+      child: SmoothNetworkImage(
+        url: thumbnail,
         width: 200,
         height: 100,
-        loadStateChanged: (state) {
-          if (state.extendedImageLoadState == LoadState.failed) {
-            return Image.asset(icon);
-          }
-          return null;
-        },
-        beforePaintImage: (canvas, rect, image, paint) {
-          if (!rect.isEmpty) {
-            canvas.save();
-            canvas.clipRRect(
-                RRect.fromRectAndRadius(rect, const Radius.circular(4)));
-          }
-          return false;
-        },
+        fit: BoxFit.cover,
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        fallback: Image.asset(icon, width: 200, height: 100, fit: BoxFit.cover),
       ),
     );
   }

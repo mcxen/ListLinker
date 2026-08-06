@@ -65,7 +65,10 @@ class _SettingsContainerState extends State<_SettingsContainer>
     List<SettingsMenu> settingsMenus = _buildSettingsMenuItems(context);
 
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: EdgeInsets.only(
+        top: 10,
+        bottom: 10 + WidgetUtils.listBottomInset(context),
+      ),
       itemBuilder: (child, index) {
         var settingsMenu = settingsMenus[index];
         return _buildListItem(settingsMenu, context, isDarkMode);
@@ -91,6 +94,8 @@ class _SettingsContainerState extends State<_SettingsContainer>
           case MenuId.account:
           case MenuId.cacheManager:
           case MenuId.playerSettings:
+          case MenuId.localVideos:
+          case MenuId.smb:
             Get.toNamed(settingsMenu.route!);
             break;
           case MenuId.privacyPolicy:
@@ -159,6 +164,16 @@ class _SettingsContainerState extends State<_SettingsContainer>
           name: Intl.settingsScreen_item_videoPlayer.tr,
           icon: Images.settingsScreenPlayer,
           route: NamedRouter.playerSettings),
+      SettingsMenu(
+          menuId: MenuId.localVideos,
+          name: Intl.settingsScreen_item_localVideos.tr,
+          icon: Images.fileTypeVideo,
+          route: NamedRouter.localVideos),
+      SettingsMenu(
+          menuId: MenuId.smb,
+          name: Intl.settingsScreen_item_smb.tr,
+          icon: Images.fileTypeFolder,
+          route: NamedRouter.smb),
       SettingsMenu(
           menuId: MenuId.privacyPolicy,
           name: Intl.settingsScreen_item_privacyPolicy.tr,
@@ -230,5 +245,7 @@ enum MenuId {
   privacyPolicy,
   about,
   cacheManager,
-  playerSettings
+  playerSettings,
+  localVideos,
+  smb,
 }

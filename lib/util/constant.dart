@@ -35,4 +35,13 @@ class AlistConstant {
   static const String playerType = 'playerType';
 
   static const String locale = 'locale';
+
+  /// One-time flag: slidable swipe hint already shown on file list.
+  static const String slidableHintShown = 'slidableHintShown';
+
+  /// Last app version for which the in-app changelog was shown.
+  static const String lastSeenVersion = 'lastSeenVersion';
+
+  /// Saved SMB connection list (JSON).
+  static const String smbConnections = 'smbConnections';
 }

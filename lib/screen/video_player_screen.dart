@@ -80,9 +80,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         file.localPath = record.localPath;
       }
     }
-    LogUtil.d("localPath=${file.localPath}");
+    LogUtil.d("localPath=${file.localPath} playUrl=${file.playUrl}");
     if (file.localPath?.isNotEmpty == true) {
-      await _fAliplayer.setUrl(file.localPath!);
+      final path = file.localPath!;
+      // AliPlayer accepts file:// or absolute paths; normalize content-style paths.
+      final url = path.startsWith("file://") || path.startsWith("http")
+          ? path
+          : "file://$path";
+      await _fAliplayer.setUrl(url);
+      _findAndCacheViewingRecord(file);
+      return;
+    }
+
+    if (file.playUrl != null && file.playUrl!.isNotEmpty) {
+      await _fAliplayer.setUrl(file.playUrl!);
       _findAndCacheViewingRecord(file);
       return;
     }
@@ -299,6 +310,9 @@ class VideoItem {
   final int? size;
   final int? modifiedMilliseconds;
 
+  /// Optional pre-resolved HTTP(S) stream URL (e.g. SMB via local proxy).
+  final String? playUrl;
+
   VideoItem({
     required this.name,
     this.localPath,
@@ -308,5 +322,6 @@ class VideoItem {
     required this.thumb,
     required this.size,
     required this.modifiedMilliseconds,
+    this.playUrl,
   });
 }

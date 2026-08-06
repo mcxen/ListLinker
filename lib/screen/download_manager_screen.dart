@@ -25,10 +25,11 @@ import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/util/video_player_util.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:list_linker/widget/overflow_text.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:list_linker/widget/smooth_network_image.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -52,7 +53,7 @@ class DownloadManagerScreen extends StatelessWidget {
     Widget scaffold = AlistScaffold(
       appbarTitle: Text(Intl.downloadManagerScreen_title.tr),
       body:
-          SlidableAutoCloseBehavior(child: _buildDownloadListView(controller)),
+          SlidableAutoCloseBehavior(child: _buildDownloadListView(context, controller)),
       appbarActions: [_menuMoreIcon(controller)],
     );
     return DownloadManagerAnchor(
@@ -62,13 +63,14 @@ class DownloadManagerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDownloadListView(DownloadManagerController controller) {
+  Widget _buildDownloadListView(BuildContext context, DownloadManagerController controller) {
     return Obx(
       () => controller._downloadList.isEmpty
           ? Center(
               child: Text(Intl.recentsScreen_noRecord.tr),
             )
           : ListView.separated(
+              padding: WidgetUtils.listViewPadding(context),
               itemBuilder: (context, index) =>
                   Obx(() => _buildDownloadItem(context, controller, index)),
               separatorBuilder: (context, index) => const Divider(),
@@ -168,21 +170,14 @@ class DownloadManagerScreen extends StatelessWidget {
     );
   }
 
-  ClipRRect _buildThumbnailView(String icon, String thumbnail) {
-    return ClipRRect(
+  Widget _buildThumbnailView(String icon, String thumbnail) {
+    return SmoothNetworkImage(
+      url: thumbnail,
+      fit: BoxFit.cover,
+      width: 35,
+      height: 35,
       borderRadius: const BorderRadius.all(Radius.circular(4)),
-      child: ExtendedImage.network(
-        thumbnail,
-        fit: BoxFit.cover,
-        width: 35,
-        height: 35,
-        loadStateChanged: (state) {
-          if (state.extendedImageLoadState != LoadState.completed) {
-            return Image.asset(icon);
-          }
-          return null;
-        },
-      ),
+      fallback: Image.asset(icon, width: 35, height: 35, fit: BoxFit.cover),
     );
   }
 

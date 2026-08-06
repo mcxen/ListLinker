@@ -21,6 +21,7 @@ import 'package:floor/floor.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
@@ -47,6 +48,7 @@ class LoginScreen extends StatelessWidget {
             },
             behavior: HitTestBehavior.translucent,
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               child: LoginScreenContainer(),
             ),
           ),
@@ -134,12 +136,14 @@ class LoginScreenContainer extends StatelessWidget {
             controller: loginScreenController.addressController,
             focusNode: loginScreenController.addressFocusNode,
             keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.next,
           ),
           LoginTextField(
             padding: const EdgeInsets.only(top: 20),
             icon: Image.asset(Images.loginScreenAccount),
             decoration: usernameDecoration,
             controller: loginScreenController.usernameController,
+            textInputAction: TextInputAction.next,
           ),
           LoginTextField(
             padding: const EdgeInsets.only(top: 20),
@@ -147,6 +151,12 @@ class LoginScreenContainer extends StatelessWidget {
             icon: Image.asset(Images.loginScreenPassword),
             decoration: passwordDecoration,
             controller: loginScreenController.passwordController,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) {
+              loginScreenController.twofaController.text = "";
+              KeyboardUtil.hideKeyboard(context);
+              loginScreenController.onLoginButtonClick(context);
+            },
           ),
           Obx(() => buildSSLErrorIgnoreCheckbox(context)),
           const SizedBox(
@@ -155,9 +165,10 @@ class LoginScreenContainer extends StatelessWidget {
           FilledButton(
             onPressed: () {
               // clear the last 2fa code typed.
+              HapticFeedback.lightImpact();
               loginScreenController.twofaController.text = "";
               KeyboardUtil.hideKeyboard(context);
-              loginScreenController._onLoginButtonClick(context);
+              loginScreenController.onLoginButtonClick(context);
             },
             child: Center(
               child: Text(Intl.loginScreen_button_login.tr),
@@ -200,6 +211,7 @@ class LoginScreenContainer extends StatelessWidget {
           },
         ),
         GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
             loginScreenController.ignoreSSLError.value =
             !loginScreenController.ignoreSSLError.value;
@@ -513,7 +525,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
     });
   }
 
-  _onLoginButtonClick(BuildContext context,
+  onLoginButtonClick(BuildContext context,
       {bool ignoreDavCheck = false, String? address}) {
     address ??= addressController.text.trim();
     _login(
@@ -532,7 +544,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
         if (code == 301) {
           // redirect
           addressController.text = message;
-          _onLoginButtonClick(context);
+          onLoginButtonClick(context);
           return;
         }
         if (code == 402) {
@@ -698,7 +710,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
     }
 
     KeyboardUtil.hideKeyboard(context);
-    _onLoginButtonClick(context);
+    onLoginButtonClick(context);
   }
 
   appendServerUrlText(String text) {
@@ -729,7 +741,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
             onPressed: () {
               SmartDialog.dismiss();
               if (isLogin) {
-                _onLoginButtonClick(context, ignoreDavCheck: true);
+                onLoginButtonClick(context, ignoreDavCheck: true);
               } else {
                 var address = addressController.text.trim();
                 _enterVisitorMode(address, ignoreDavCheck: true);
@@ -755,6 +767,8 @@ class LoginTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType,
     this.focusNode,
+    this.textInputAction,
+    this.onSubmitted,
   });
 
   final InputDecoration decoration;
@@ -764,6 +778,8 @@ class LoginTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -782,6 +798,8 @@ class LoginTextField extends StatelessWidget {
               obscureText: obscureText,
               focusNode: focusNode,
               keyboardType: keyboardType,
+              textInputAction: textInputAction,
+              onSubmitted: onSubmitted,
             ),
           )
         ],

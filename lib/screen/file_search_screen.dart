@@ -93,6 +93,7 @@ class FileSearchScreen extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => Get.back(),
                   child: Padding(
                     padding:
@@ -103,14 +104,15 @@ class FileSearchScreen extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(child: _buildList(controller)),
+          Expanded(child: _buildList(context, controller)),
         ],
       ),
     );
   }
 
-  Obx _buildList(FileSearchController controller) {
+  Obx _buildList(BuildContext context, FileSearchController controller) {
     return Obx(() => ListView.separated(
+      padding: WidgetUtils.listViewPadding(context),
         itemBuilder: (context, index) {
           var item = controller.list[index];
           var isDir = item.isDir ?? false;

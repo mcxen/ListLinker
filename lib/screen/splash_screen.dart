@@ -1,4 +1,5 @@
 import 'package:list_linker/database/alist_database_controller.dart';
+import 'package:list_linker/generated/images.dart';
 import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/net/dio_utils.dart';
 import 'package:list_linker/net/intercept.dart';
@@ -9,6 +10,7 @@ import 'package:list_linker/util/file_password_helper.dart';
 import 'package:list_linker/util/global.dart';
 import 'package:list_linker/util/log_utils.dart';
 import 'package:list_linker/util/named_router.dart';
+import 'package:list_linker/util/smb/smb_service.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/util/widget_utils.dart';
 import 'package:dio/dio.dart';
@@ -36,9 +38,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> init() async {
     AlistPlugin.setupChannel();
+    await _precacheAssets();
     await _databaseController.init();
     FilePasswordHelper().setFilePasswordDao(_databaseController.filePasswordDao);
     await SpUtil.getInstance();
+    if (!Get.isRegistered<SmbService>()) {
+      await Get.putAsync(() => SmbService().init());
+    }
     await JustAudioBackground.init(
       androidNotificationChannelId: 'com.github.listlinker.client.audio',
       androidNotificationChannelName: 'Audio playback',
@@ -67,6 +73,37 @@ class _SplashScreenState extends State<SplashScreen> {
     } else {
       Get.offNamed(NamedRouter.home);
     }
+  }
+
+
+  Future<void> _precacheAssets() async {
+    // Wait for first frame so a BuildContext with MediaQuery is available.
+    while (_context == null) {
+      await Future.delayed(const Duration(milliseconds: 17));
+    }
+    final ctx = _context!;
+    const assets = <String>[
+      Images.logo,
+      Images.iconArrowRight,
+      Images.fileTypeFolder,
+      Images.fileTypeImage,
+      Images.fileTypeVideo,
+      Images.fileTypeAudio,
+      Images.fileTypePdf,
+      Images.fileTypeUnknow,
+      Images.loginScreenServerUrl,
+      Images.loginScreenAccount,
+      Images.loginScreenPassword,
+      Images.settingsScreenDownload,
+      Images.settingsScreenCacheManager,
+      Images.settingsScreenPlayer,
+      Images.settingsScreenAccount,
+      Images.settingsScreenAbout,
+      Images.accountIcon,
+    ];
+    await Future.wait(
+      assets.map((path) => precacheImage(AssetImage(path), ctx)),
+    );
   }
 
   void makeSureLoginUserInfo(String? token) {

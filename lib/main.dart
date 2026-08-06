@@ -4,6 +4,7 @@ import 'package:list_linker/router.dart';
 import 'package:list_linker/util/log_utils.dart';
 import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/util/proxy.dart';
+import 'package:list_linker/util/smb/smb_service.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/foundation.dart';
@@ -21,6 +22,32 @@ void main() {
   // sp初始化
   SpUtil.getInstance();
   Log.init();
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: Colors.transparent,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 40, color: Colors.grey.shade600),
+              const SizedBox(height: 12),
+              Text(
+                'Something went wrong',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
   runApp(const MyApp());
 }
 
@@ -38,6 +65,7 @@ class MyApp extends StatelessWidget {
       builder: _routerBuilder,
       navigatorObservers: [FlutterSmartDialog.observer],
       defaultTransition: Transition.cupertino,
+      scrollBehavior: AlistScrollBehavior(),
       title: "ALClient",
       theme: _lightTheme(context),
       darkTheme: _dartTheme(context),
@@ -49,6 +77,9 @@ class MyApp extends StatelessWidget {
     Get.put(AlistDatabaseController());
     Get.put(UserController());
     Get.put(ProxyServer());
+    if (!Get.isRegistered<SmbService>()) {
+      Get.put(SmbService()..init());
+    }
 
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaleFactor: 1),
@@ -68,25 +99,31 @@ class MyApp extends StatelessWidget {
 
   ThemeData _dartTheme(BuildContext context) {
     return ThemeData(
-        useMaterial3: true,
-        colorScheme: darkColorScheme,
-        dividerTheme: DividerTheme.of(context).copyWith(
-          thickness: 0,
-          space: 0,
+      useMaterial3: true,
+      colorScheme: darkColorScheme,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: darkColorScheme.primary,
+        selectionColor: darkColorScheme.primary.withOpacity(0.35),
+        selectionHandleColor: darkColorScheme.primary,
+      ),
+      dividerTheme: DividerTheme.of(context).copyWith(
+        thickness: 0,
+        space: 0,
+      ),
+      appBarTheme: AppBarTheme.of(context).copyWith(
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
         ),
-        appBarTheme: AppBarTheme.of(context).copyWith(
-          titleTextStyle: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
-          systemOverlayStyle: const SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.light,
-            systemNavigationBarColor: Color(0xFF1A1C1E),
-            systemNavigationBarIconBrightness: Brightness.light,
-          ),
-        ));
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Color(0xFF1A1C1E),
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
+      ),
+    );
   }
 
   ThemeData _lightTheme(BuildContext context) {
@@ -94,6 +131,11 @@ class MyApp extends StatelessWidget {
       useMaterial3: true,
       hintColor: const Color(0xFFBBBBBB),
       colorScheme: lightColorScheme,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: lightColorScheme.primary,
+        selectionColor: lightColorScheme.primary.withOpacity(0.3),
+        selectionHandleColor: lightColorScheme.primary,
+      ),
       dividerTheme: DividerTheme.of(context).copyWith(
         thickness: 0,
         space: 0,
@@ -112,5 +154,22 @@ class MyApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// App-wide scrollbars on vertical scrollables (desktop/web and long lists).
+class AlistScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Widget buildScrollbar(
+      BuildContext context, Widget child, ScrollableDetails details) {
+    switch (axisDirectionToAxis(details.direction)) {
+      case Axis.horizontal:
+        return child;
+      case Axis.vertical:
+        return Scrollbar(
+          controller: details.controller,
+          child: child,
+        );
+    }
   }
 }

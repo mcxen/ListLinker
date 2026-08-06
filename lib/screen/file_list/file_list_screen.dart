@@ -39,11 +39,13 @@ import 'package:list_linker/util/proxy.dart';
 import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/util/video_player_util.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:list_linker/widget/config_file_name_max_lines_dialog.dart';
 import 'package:list_linker/widget/file_details_dialog.dart';
 import 'package:list_linker/widget/file_list_item_view.dart';
 import 'package:list_linker/widget/overflow_text.dart';
+import 'package:sp_util/sp_util.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:floor/floor.dart';
 import 'package:flustars/flustars.dart';
@@ -1059,7 +1061,7 @@ class _FileListScreenState extends State<FileListScreen>
   }
 }
 
-class _FileListView extends StatelessWidget {
+class _FileListView extends StatefulWidget {
   const _FileListView({
     Key? key,
     required this.files,
@@ -1083,21 +1085,64 @@ class _FileListView extends StatelessWidget {
   final VoidCallback refreshCallback;
 
   @override
+  State<_FileListView> createState() => _FileListViewState();
+}
+
+class _FileListViewState extends State<_FileListView>
+    with SingleTickerProviderStateMixin {
+  late final SlidableController _slidableHintController;
+  bool _hintScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _slidableHintController = SlidableController(this);
+  }
+
+  @override
+  void dispose() {
+    _slidableHintController.dispose();
+    super.dispose();
+  }
+
+  void _maybeShowSlidableHint() {
+    if (_hintScheduled || widget.files.isEmpty) return;
+    if (SpUtil.getBool(AlistConstant.slidableHintShown) == true) return;
+    _hintScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      try {
+        _slidableHintController.openEndActionPane();
+        await Future.delayed(const Duration(milliseconds: 900));
+        if (!mounted) return;
+        _slidableHintController.close();
+      } catch (_) {
+        // Controller may not be attached yet; skip quietly.
+      }
+      await SpUtil.putBool(AlistConstant.slidableHintShown, true);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    var itemCount = files.length;
-    if (readme != null && readme!.isNotEmpty) {
+    var itemCount = widget.files.length;
+    if (widget.readme != null && widget.readme!.isNotEmpty) {
       itemCount++;
     }
+    _maybeShowSlidableHint();
 
     return SmartRefresher(
-      controller: refreshController,
-      onRefresh: refreshCallback,
+      controller: widget.refreshController,
+      onRefresh: widget.refreshCallback,
       child: ListView.separated(
+        padding: WidgetUtils.listViewPadding(context),
         itemCount: itemCount,
         separatorBuilder: (context, index) => const Padding(
             padding: EdgeInsets.symmetric(horizontal: 18), child: Divider()),
         itemBuilder: (context, index) {
-          if (index == files.length) {
+          if (index == widget.files.length) {
             // it's readme
             return FileListItemView(
               icon: Images.fileTypeMd,
@@ -1105,9 +1150,9 @@ class _FileListView extends StatelessWidget {
               time: null,
               sizeDesc: null,
               onTap: () {
-                if (GetUtils.isURL(readme!)) {
+                if (GetUtils.isURL(widget.readme!)) {
                   Get.toNamed(NamedRouter.web, arguments: {
-                    "url": MarkdownUtil.makePreviewUrl(readme!),
+                    "url": MarkdownUtil.makePreviewUrl(widget.readme!),
                     "title": "README.md"
                   });
                 } else {
@@ -1117,12 +1162,13 @@ class _FileListView extends StatelessWidget {
             );
           } else {
             // it's file
-            final file = files[index];
+            final file = widget.files[index];
             return Slidable(
               key: Key(file.path),
+              controller: index == 0 ? _slidableHintController : null,
               endActionPane: ActionPane(
                 motion: const DrawerMotion(),
-                extentRatio: hasWritePermission ? 0.5 : 0.25,
+                extentRatio: widget.hasWritePermission ? 0.5 : 0.25,
                 children: [
                   SlidableAction(
                     onPressed: (context) => _showDetailsDialog(context, file),
@@ -1130,11 +1176,11 @@ class _FileListView extends StatelessWidget {
                     foregroundColor: Colors.white,
                     label: Intl.recentsScreen_menu_details.tr,
                   ),
-                  if (hasWritePermission)
+                  if (widget.hasWritePermission)
                     SlidableAction(
                       onPressed: (context) {
-                        if (null != fileDeleteCallback) {
-                          fileDeleteCallback!(context, index);
+                        if (null != widget.fileDeleteCallback) {
+                          widget.fileDeleteCallback!(context, index);
                         }
                       },
                       backgroundColor: const Color(0xFFFE4A49),
@@ -1149,10 +1195,10 @@ class _FileListView extends StatelessWidget {
                 thumbnail: file.thumb,
                 time: file.modified,
                 sizeDesc: file.sizeDesc,
-                onTap: () => onFileItemClick(context, index),
+                onTap: () => widget.onFileItemClick(context, index),
                 onMoreIconButtonTap: () {
-                  if (onFileMoreIconButtonTap != null) {
-                    onFileMoreIconButtonTap!(context, index);
+                  if (widget.onFileMoreIconButtonTap != null) {
+                    widget.onFileMoreIconButtonTap!(context, index);
                   }
                 },
               ),
@@ -1169,7 +1215,8 @@ class _FileListView extends StatelessWidget {
     await proxyServer.start();
     // 设置 path 为本地代理服务器的key，这样就可以通过 http:// 访问 readme 的内容
     // 并且返回对应的本地链接
-    var proxyUri = proxyServer.makeContentUri(path ?? "/", readme!);
+    var proxyUri =
+        proxyServer.makeContentUri(widget.path ?? "/", widget.readme!);
     LogUtil.d("proxyUri ${proxyUri.toString()}");
 
     await Get.toNamed(NamedRouter.web, arguments: {
@@ -1179,6 +1226,7 @@ class _FileListView extends StatelessWidget {
     proxyServer.stop();
   }
 }
+
 
 _showDetailsDialog(BuildContext context, FileItemVO file) {
   showModalBottomSheet(

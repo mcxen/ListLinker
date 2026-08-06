@@ -11,8 +11,13 @@ import 'package:list_linker/screen/gallery_screen.dart';
 import 'package:list_linker/screen/home_screen.dart';
 import 'package:list_linker/screen/login_screen.dart';
 import 'package:list_linker/screen/pdf_reader_screen.dart';
+import 'package:list_linker/screen/local_storage_browser_screen.dart';
+import 'package:list_linker/screen/local_video_screen.dart';
 import 'package:list_linker/screen/player_settings_screen.dart';
 import 'package:list_linker/screen/settings_screen.dart';
+import 'package:list_linker/screen/smb/smb_browser_screen.dart';
+import 'package:list_linker/screen/smb/smb_list_screen.dart';
+import 'package:list_linker/screen/smb/smb_scan_screen.dart';
 import 'package:list_linker/screen/splash_screen.dart';
 import 'package:list_linker/screen/uploading_files_screen.dart';
 import 'package:list_linker/screen/video_player_screen.dart';
@@ -46,5 +51,12 @@ class AlistRouter {
     GetPage(name: NamedRouter.fileSearch, page: () => FileSearchScreen()),
     GetPage(name: NamedRouter.cacheManager, page: () => const CacheManagerScreen()),
     GetPage(name: NamedRouter.playerSettings, page: () => const PlayerSettingsScreen()),
+    GetPage(name: NamedRouter.localVideos, page: () => const LocalVideoScreen()),
+    GetPage(
+        name: NamedRouter.localStorageBrowser,
+        page: () => const LocalStorageBrowserScreen()),
+    GetPage(name: NamedRouter.smb, page: () => const SmbListScreen()),
+    GetPage(name: NamedRouter.smbBrowser, page: () => const SmbBrowserScreen()),
+    GetPage(name: NamedRouter.smbScan, page: () => const SmbScanScreen()),
   ];
 }

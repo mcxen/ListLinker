@@ -52,7 +52,11 @@ class _AboutPageContainerState extends State<_AboutPageContainer> {
           ),
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Text("v${packageInfo?.version ?? ""}"),
+            child: Text(
+              packageInfo == null
+                  ? ""
+                  : "v${packageInfo!.version} (${packageInfo!.buildNumber})",
+            ),
           ),
         ],
       ),

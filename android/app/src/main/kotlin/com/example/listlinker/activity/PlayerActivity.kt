@@ -17,8 +17,8 @@ import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import com.example.listlinker.bean.VideoItem
-import com.example.listlinker.client.BuildConfig
-import com.example.listlinker.client.R
+import com.example.listlinker.BuildConfig
+import com.example.listlinker.R
 import com.example.listlinker.utils.FlutterMethods
 import com.example.listlinker.utils.GsonUtils
 import com.example.listlinker.widget.AlistClientVideoPlayer

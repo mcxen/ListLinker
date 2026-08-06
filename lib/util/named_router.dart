@@ -55,4 +55,15 @@ class NamedRouter {
 
   // player settings
   static const playerSettings = "/playerSettings";
+
+  // local videos
+  static const localVideos = "/localVideos";
+
+  // SMB
+  static const smb = "/smb";
+  static const smbBrowser = "/smbBrowser";
+  static const smbScan = "/smbScan";
+
+  // Local storage browser
+  static const localStorageBrowser = "/localStorageBrowser";
 }

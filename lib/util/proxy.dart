@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:list_linker/util/constant.dart';
+import 'package:list_linker/util/smb/smb_proxy_source.dart';
 import 'package:list_linker/util/string_utils.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/cupertino.dart';
@@ -20,24 +21,37 @@ class ProxyServer {
   // 通过 key 保存请求返回的内容，目前暂时用于 markdown 内容的保存
   final _content = <String, String>{};
   final _files = <String, File>{};
+  final _smbSources = <String, SmbProxySource>{};
   static const _maxRedirectTimes = 20;
 
   // 正在代理的链接数量
   var _runningConnectionsCnt = 0;
+
+  void registerSmbSource(String key, SmbProxySource source) {
+    _smbSources[key] = source;
+  }
+
+  void clearSmbSources() {
+    _smbSources.clear();
+  }
 
   void _handleRequest(HttpRequest request) async {
     var httpClient = _httpClient;
     final targetUrl = request.uri.queryParameters['targetUrl'];
     final contentKey = request.uri.queryParameters['contentKey'];
     final file = request.uri.queryParameters['file'];
+    final smbKey = request.uri.queryParameters['smb'];
     LogUtil.d("targetUrl=$targetUrl");
     LogUtil.d("contentKey=$contentKey");
     LogUtil.d("file=$file");
+    LogUtil.d("smb=$smbKey");
     final hasTargetUrl = !(targetUrl == null || targetUrl.isEmpty);
     final hasContentKey = !(contentKey == null || contentKey.isEmpty);
     final hasFile = !(file == null || file.isEmpty);
+    final hasSmb = !(smbKey == null || smbKey.isEmpty);
 
-    if (httpClient == null || (!hasTargetUrl && !hasContentKey && !hasFile)) {
+    if (httpClient == null ||
+        (!hasTargetUrl && !hasContentKey && !hasFile && !hasSmb)) {
       request.response.statusCode = HttpStatus.badRequest;
       request.response.close();
       return;
@@ -52,6 +66,15 @@ class ProxyServer {
         _write404Response(request);
       } else {
         _writeFileResponse(targetFile, request);
+      }
+      return;
+    }
+    if (hasSmb) {
+      final source = _smbSources[smbKey];
+      if (source == null) {
+        _write404Response(request);
+      } else {
+        await _writeSmbResponse(source, request);
       }
       return;
     }
@@ -328,12 +351,23 @@ class ProxyServer {
     );
   }
 
+  Uri makeSmbUri(String key) {
+    if (_httpServer == null) throw Exception("Proxy server is not started");
+    return Uri(
+      scheme: "http",
+      host: "127.0.0.1",
+      port: _port,
+      queryParameters: {"smb": key},
+    );
+  }
+
   Future<void> stop() async {
     var httpServer = _httpServer;
     var httpClient = _httpClient;
     _httpServer = null;
     _httpClient = null;
     _content.clear();
+    _smbSources.clear();
     await httpServer?.close(force: true);
     try {
       httpClient?.close(force: true);
@@ -377,6 +411,48 @@ class ProxyServer {
       request.response
         ..statusCode = HttpStatus.internalServerError
         ..close();
+    }
+  }
+
+  Future<void> _writeSmbResponse(
+      SmbProxySource source, HttpRequest request) async {
+    try {
+      final length = await source.length();
+      request.response.headers.contentType = ContentType.binary;
+      request.response.headers.set(HttpHeaders.acceptRangesHeader, 'bytes');
+
+      final rangeHeader = request.headers.value(HttpHeaders.rangeHeader);
+      if (rangeHeader != null) {
+        final matches = RegExp(r'bytes=(\d+)-(\d+)?').firstMatch(rangeHeader);
+        if (matches != null) {
+          final start = int.parse(matches.group(1)!);
+          final end = matches.group(2) != null
+              ? int.parse(matches.group(2)!)
+              : length - 1;
+          final clampedEnd = end.clamp(start, length - 1);
+          request.response.statusCode = HttpStatus.partialContent;
+          request.response.headers.set(
+            HttpHeaders.contentRangeHeader,
+            'bytes $start-$clampedEnd/$length',
+          );
+          request.response.headers.set(
+            HttpHeaders.contentLengthHeader,
+            clampedEnd - start + 1,
+          );
+          await source.writeRange(request.response, start, clampedEnd);
+          return;
+        }
+      }
+
+      request.response.statusCode = HttpStatus.ok;
+      request.response.headers.set(HttpHeaders.contentLengthHeader, length);
+      await source.writeAll(request.response);
+    } catch (e) {
+      LogUtil.d("smb proxy error: $e", tag: tag);
+      try {
+        request.response.statusCode = HttpStatus.internalServerError;
+        await request.response.close();
+      } catch (_) {}
     }
   }
 }

@@ -2,9 +2,10 @@ import 'package:list_linker/generated/images.dart';
 import 'package:list_linker/util/file_type.dart';
 import 'package:list_linker/util/file_utils.dart';
 import 'package:list_linker/util/global.dart';
+import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/overflow_text.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:list_linker/widget/smooth_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -33,10 +34,16 @@ class FileListItemView extends StatelessWidget {
   Widget build(BuildContext context) {
     String? thumbnail = FileUtils.getCompleteThumbnail(this.thumbnail);
     bool isDarkMode = WidgetUtils.isDarkMode(context);
-    String subtitle = time ?? "";
-    if (sizeDesc != null) {
-      subtitle = "$subtitle - $sizeDesc";
+    final safeName = fileName.orPlaceholder();
+    final safeTime = time.orPlaceholder('');
+    final safeSize = sizeDesc.orPlaceholder('');
+    String subtitle = safeTime;
+    if (safeSize.isNotEmpty && safeSize != '-') {
+      subtitle = subtitle.isEmpty || subtitle == '-'
+          ? safeSize
+          : "$subtitle - $safeSize";
     }
+    if (subtitle == '-') subtitle = '';
 
     return ListTile(
       horizontalTitleGap: 6,
@@ -55,9 +62,9 @@ class FileListItemView extends StatelessWidget {
         int globalFileNameMaxLines = Global.fileNameMaxLines.value;
         int fileNameMaxLines = this.fileNameMaxLines ?? globalFileNameMaxLines;
         return fileNameMaxLines == 1
-            ? OverflowText(text: fileName)
+            ? OverflowText(text: safeName)
             : Text(
-                fileName,
+                safeName,
                 maxLines: fileNameMaxLines > 2 ? 1000 : 2,
                 overflow: TextOverflow.ellipsis,
               );
@@ -106,21 +113,14 @@ class FileListItemView extends StatelessWidget {
     }
   }
 
-  ClipRRect _buildThumbnailView(String icon, String thumbnail) {
-    return ClipRRect(
+  Widget _buildThumbnailView(String icon, String thumbnail) {
+    return SmoothNetworkImage(
+      url: thumbnail,
+      fit: BoxFit.cover,
+      width: 35,
+      height: 35,
       borderRadius: const BorderRadius.all(Radius.circular(4)),
-      child: ExtendedImage.network(
-        thumbnail,
-        fit: BoxFit.cover,
-        width: 35,
-        height: 35,
-        loadStateChanged: (state) {
-          if (state.extendedImageLoadState == LoadState.failed) {
-            return Image.asset(icon);
-          }
-          return null;
-        },
-      ),
+      fallback: Image.asset(icon, width: 35, height: 35, fit: BoxFit.cover),
     );
   }
 }

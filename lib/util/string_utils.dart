@@ -3,6 +3,21 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 extension StringExtensions on String? {
+  /// Display-safe text for API-backed strings.
+  /// Covers null, the literal "null", and empty/whitespace-only values.
+  String orPlaceholder([String placeholder = '-']) {
+    if (this == null) return placeholder;
+    final value = this!.trim();
+    if (value.isEmpty || value.toLowerCase() == 'null') return placeholder;
+    return value;
+  }
+
+  bool get isUsable {
+    if (this == null) return false;
+    final value = this!.trim();
+    return value.isNotEmpty && value.toLowerCase() != 'null';
+  }
+
   String? substringAfterLast(String separator) {
     if (this == null) {
       return null;

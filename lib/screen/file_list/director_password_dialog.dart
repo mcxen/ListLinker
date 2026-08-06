@@ -56,6 +56,7 @@ class _DirectorPasswordDialogState extends State<DirectorPasswordDialog> {
                     });
                   }),
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () {
                   setState(() {
                     _isRememberPassword = !_isRememberPassword;

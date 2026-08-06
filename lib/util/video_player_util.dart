@@ -30,8 +30,15 @@ class VideoPlayerUtil {
     } else {
       // 交给设置的外部的视频播放器处理
       var item = videos[index];
-      var playResult = await _playUrlWithExternalPlayer(videoPlayerRouter,
-          item.provider, item.localPath, item.remotePath, item.sign, password);
+      var playResult = await _playUrlWithExternalPlayer(
+        videoPlayerRouter,
+        item.provider,
+        item.localPath,
+        item.remotePath,
+        item.sign,
+        password,
+        playUrl: item.playUrl,
+      );
       if (!playResult) {
         // 遇到 Activity Not Found 错误，说明原外部播放器软件已被卸载
         SpUtil.remove(AlistConstant.videoPlayerRouter);
@@ -56,12 +63,30 @@ class VideoPlayerUtil {
         videoParam["sign"] = element.sign;
         videoParam["provider"] = element.provider;
         videoParam["thumb"] = element.thumb;
-        videoParam["url"] =
-            await FileUtils.makeFileLink(element.remotePath, element.sign);
         videoParam["modifiedMilliseconds"] =
             element.modifiedMilliseconds?.toString();
         videoParam["size"] = element.size?.toString();
+
+        final hasLocal =
+            element.localPath != null && element.localPath!.isNotEmpty;
+        final hasHttpUrl = element.playUrl != null &&
+            element.playUrl!.isNotEmpty &&
+            (element.playUrl!.startsWith("http://") ||
+                element.playUrl!.startsWith("https://"));
+
+        if (hasLocal) {
+          // Local file path or content-served path — GSY accepts file paths.
+          videoParam["url"] = element.localPath;
+        } else if (hasHttpUrl) {
+          // Pre-resolved stream URL (e.g. SMB via local proxy).
+          videoParam["url"] = element.playUrl;
+        } else {
+          videoParam["url"] =
+              await FileUtils.makeFileLink(element.remotePath, element.sign);
+        }
+
         if (videoParam["url"] == null || videoParam["url"] == "") {
+          SmartDialog.showToast(Intl.tips_request_raw_url_failed.tr);
           return;
         }
 
@@ -89,7 +114,9 @@ class VideoPlayerUtil {
       String? localPath,
       String remotePath,
       String? sign,
-      String? password) async {
+      String? password, {
+      String? playUrl,
+    }) async {
     if (localPath != null && localPath != "") {
       var packageName = videoPlayerRouter.substringBeforeLast("/")!;
       if (Platform.isAndroid) {
@@ -101,10 +128,24 @@ class VideoPlayerUtil {
         // ios使用本地服务提供url给外部播放器
         ProxyServer proxyServer = Get.find();
         await proxyServer.start();
-        var videoUrl = proxyServer.makeFileUri(File(localPath)).toString();
+        final isHttp = localPath.startsWith("http://") ||
+            localPath.startsWith("https://");
+        var videoUrl = isHttp
+            ? localPath
+            : proxyServer.makeFileUri(File(localPath)).toString();
         debugPrint("videoUrl=$videoUrl");
         var uri = Uri.parse("$packageName$videoUrl");
         return launchUrl(uri);
+      }
+    } else if (playUrl != null && playUrl.isNotEmpty) {
+      var packageName = videoPlayerRouter.substringBeforeLast("/")!;
+      if (Platform.isIOS) {
+        var uri = Uri.parse("$packageName$playUrl");
+        return launchUrl(uri);
+      } else {
+        var activity = videoPlayerRouter.substringAfterLast("/")!;
+        return AlistPlugin.playVideoWithExternalPlayer(
+            packageName, activity, playUrl);
       }
     } else {
       var videoUrl = await FileUtils.makeFileLink(remotePath, sign);
@@ -225,8 +266,15 @@ class VideoPlayerUtil {
               } else {
                 var videoPlayerRouter = "${info.packageName}/${info.activity}";
                 var item = videos[index];
-                _playUrlWithExternalPlayer(videoPlayerRouter, item.provider,
-                    item.localPath, item.remotePath, item.sign, password);
+                _playUrlWithExternalPlayer(
+                  videoPlayerRouter,
+                  item.provider,
+                  item.localPath,
+                  item.remotePath,
+                  item.sign,
+                  password,
+                  playUrl: item.playUrl,
+                );
               }
             },
           );

@@ -29,6 +29,7 @@ import 'package:list_linker/widget/file_list_item_view.dart';
 import 'package:dio/dio.dart';
 import 'package:floor/floor.dart';
 import 'package:flustars/flustars.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -94,6 +95,7 @@ class _RecentsScreenState extends State<RecentsScreen>
   Widget _fileListView() {
     return SlidableAutoCloseBehavior(
       child: ListView.separated(
+        padding: WidgetUtils.listViewPadding(context),
         itemBuilder: (context, item) {
           var record = _list[item];
           return _fileListItemView(context, record);

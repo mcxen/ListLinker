@@ -14,7 +14,7 @@ import android.view.ViewOutlineProvider;
 import androidx.annotation.NonNull;
 import androidx.core.view.GestureDetectorCompat;
 
-import com.example.listlinker.client.R;
+import com.example.listlinker.R;
 import com.shuyu.gsyvideoplayer.video.NormalGSYVideoPlayer;
 import com.shuyu.gsyvideoplayer.video.base.GSYBaseVideoPlayer;
 
