@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
@@ -287,7 +287,7 @@ class GalleryController extends GetxController {
     name = _makeSavedFileName(name);
     if (files?[index].localPath != null &&
         files![index].localPath!.isNotEmpty) {
-      await ImageGallerySaver.saveFile(files![index].localPath!, name: name)
+      await ImageGallerySaverPlus.saveFile(files![index].localPath!, name: name)
           .then((value) =>
               SmartDialog.showToast(Intl.galleryScreen_savePhotoSucceed.tr));
       return;
@@ -302,7 +302,7 @@ class GalleryController extends GetxController {
     var cacheFilePath = cacheFile.path;
     var tmpFile = io.File(p.join(io.File(cacheFilePath).parent.path, name));
     await io.File(cacheFilePath).copy(tmpFile.path);
-    await ImageGallerySaver.saveFile(tmpFile.path, name: name).then((value) =>
+    await ImageGallerySaverPlus.saveFile(tmpFile.path, name: name).then((value) =>
         SmartDialog.showToast(Intl.galleryScreen_savePhotoSucceed.tr));
     await tmpFile.delete();
   }

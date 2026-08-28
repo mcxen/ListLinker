@@ -103,7 +103,7 @@ dependencies:
   device_info_plus: 9.0.2
   rxdart: ^0.27.7
   url_launcher: ^6.0.20
-  image_gallery_saver: ^2.0.3
+  image_gallery_saver_plus: ^5.1.1
   uuid: ^3.0.7
   pull_to_refresh: ^2.0.0
   flutter_staggered_grid_view: 0.7.0
