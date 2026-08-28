@@ -26,8 +26,8 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Install Android SDK 35
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" 2>&1 || true'
+      - name: Install Android SDK 36
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" 2>&1 || true'
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -48,39 +48,6 @@ jobs:
         with:
           name: listlinker-android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-
-  build-ios:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
-          cache: true
-
-      - name: Get Flutter packages
-        run: flutter pub get
-
-      - name: Generate database code
-        run: flutter packages pub run build_runner build --delete-conflicting-outputs
-
-      - name: Build iOS
-        run: flutter build ios --no-codesign --release
-
-      - name: Create IPA archive
-        run: |
-          cd build/ios/iphoneos
-          mkdir -p Payload
-          cp -r Runner.app Payload/
-          zip -r listlinker-ios.ipa Payload
-
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: listlinker-ios-ipa
-          path: build/ios/iphoneos/listlinker-ios.ipa
           if-no-files-found: error
 
   build-macos:
@@ -121,42 +88,6 @@ jobs:
           path: build/macos/Build/Products/Release/ListLinker-macOS.zip
           if-no-files-found: error
 
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
-          cache: true
-
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libmpv-dev
-
-      - name: Get Flutter packages
-        run: flutter pub get
-
-      - name: Generate database code
-        run: flutter packages pub run build_runner build --delete-conflicting-outputs
-
-      - name: Build Linux
-        run: flutter build linux --release
-
-      - name: Create Linux archive
-        run: |
-          cd build/linux/x64/release
-          tar czf listlinker-linux.tar.gz bundle
-
-      - name: Upload Linux build
-        uses: actions/upload-artifact@v4
-        with:
-          name: listlinker-linux
-          path: build/linux/x64/release/listlinker-linux.tar.gz
-          if-no-files-found: error
-
   build-windows:
     runs-on: windows-latest
     steps:
@@ -189,39 +120,8 @@ jobs:
           path: build/windows/x64/runner/Release/listlinker-windows.zip
           if-no-files-found: error
 
-  build-web:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
-          cache: true
-
-      - name: Get Flutter packages
-        run: flutter pub get
-
-      - name: Generate database code
-        run: flutter packages pub run build_runner build --delete-conflicting-outputs
-
-      - name: Build Web
-        run: flutter build web --release
-
-      - name: Create Web archive
-        run: |
-          cd build
-          tar czf listlinker-web.tar.gz web
-
-      - name: Upload Web build
-        uses: actions/upload-artifact@v4
-        with:
-          name: listlinker-web
-          path: build/listlinker-web.tar.gz
-          if-no-files-found: error
-
   create-release:
-    needs: [build-android, build-ios, build-macos, build-linux, build-windows, build-web]
+    needs: [build-android, build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && startsWith(inputs.tag, 'v'))
     permissions:
@@ -240,10 +140,7 @@ jobs:
           generate_release_notes: true
           files: |
             listlinker-android-apk/app-release.apk
-            listlinker-ios-ipa/listlinker-ios.ipa
             listlinker-macos/ListLinker-macOS.zip
-            listlinker-linux/listlinker-linux.tar.gz
             listlinker-windows/listlinker-windows.zip
-            listlinker-web/listlinker-web.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -30,7 +30,7 @@ def hasStoreFile = storeFile != null && storeFile != ''
 
 android {
     namespace 'com.example.listlinker'
-    compileSdk 34
+    compileSdk 36
     ndkVersion flutter.ndkVersion
 
     compileOptions {
