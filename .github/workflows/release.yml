@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing vX.Y.Z tag to publish (used for release repair)'
+        required: true
+        type: string
 
 env:
   FLUTTER_VERSION: "3.47.2"
@@ -129,7 +134,7 @@ jobs:
       - name: Install Linux dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
 
       - name: Get Flutter packages
         run: flutter pub get
@@ -218,7 +223,7 @@ jobs:
   create-release:
     needs: [build-android, build-ios, build-macos, build-linux, build-windows, build-web]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && startsWith(inputs.tag, 'v'))
     permissions:
       contents: write
     steps:
@@ -228,8 +233,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ListLinker ${{ github.ref_name }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: ListLinker ${{ inputs.tag || github.ref_name }}
           draft: false
           prerelease: false
           generate_release_notes: true
