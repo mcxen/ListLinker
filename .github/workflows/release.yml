@@ -7,7 +7,10 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: "3.24.0"
+  FLUTTER_VERSION: "3.47.2"
+
+permissions:
+  contents: read
 
 jobs:
   build-android:
@@ -19,7 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Install Android SDK 35
-        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" 2>&1 || true
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" 2>&1 || true'
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -40,6 +43,7 @@ jobs:
         with:
           name: listlinker-android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
 
   build-ios:
     runs-on: macos-latest
@@ -72,6 +76,7 @@ jobs:
         with:
           name: listlinker-ios-ipa
           path: build/ios/iphoneos/listlinker-ios.ipa
+          if-no-files-found: error
 
   build-macos:
     runs-on: macos-latest
@@ -82,6 +87,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
+
+      - name: Ensure Rosetta is available
+        if: runner.arch == 'ARM64'
+        run: sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
 
       - name: Get Flutter packages
         run: flutter pub get
@@ -94,14 +103,18 @@ jobs:
 
       - name: Create macOS archive
         run: |
-          cd build/macos/Build/Products/Release
-          zip -r listlinker-macos.zip ListLinker.app
+          test -d build/macos/Build/Products/Release/ListLinker.app
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/macos/Build/Products/Release/ListLinker.app \
+            build/macos/Build/Products/Release/ListLinker-macOS.zip
+          test -s build/macos/Build/Products/Release/ListLinker-macOS.zip
 
       - name: Upload macOS build
         uses: actions/upload-artifact@v4
         with:
           name: listlinker-macos
-          path: build/macos/Build/Products/Release/listlinker-macos.zip
+          path: build/macos/Build/Products/Release/ListLinker-macOS.zip
+          if-no-files-found: error
 
   build-linux:
     runs-on: ubuntu-latest
@@ -137,6 +150,7 @@ jobs:
         with:
           name: listlinker-linux
           path: build/linux/x64/release/listlinker-linux.tar.gz
+          if-no-files-found: error
 
   build-windows:
     runs-on: windows-latest
@@ -168,6 +182,7 @@ jobs:
         with:
           name: listlinker-windows
           path: build/windows/x64/runner/Release/listlinker-windows.zip
+          if-no-files-found: error
 
   build-web:
     runs-on: ubuntu-latest
@@ -198,6 +213,7 @@ jobs:
         with:
           name: listlinker-web
           path: build/listlinker-web.tar.gz
+          if-no-files-found: error
 
   create-release:
     needs: [build-android, build-ios, build-macos, build-linux, build-windows, build-web]
@@ -220,7 +236,7 @@ jobs:
           files: |
             listlinker-android-apk/app-release.apk
             listlinker-ios-ipa/listlinker-ios.ipa
-            listlinker-macos/listlinker-macos.zip
+            listlinker-macos/ListLinker-macOS.zip
             listlinker-linux/listlinker-linux.tar.gz
             listlinker-windows/listlinker-windows.zip
             listlinker-web/listlinker-web.tar.gz

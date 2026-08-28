@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import 'database/alist_database_controller.dart';
@@ -19,6 +20,7 @@ import 'generated/color_schemes.g.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   // sp初始化
   SpUtil.getInstance();
   Log.init();

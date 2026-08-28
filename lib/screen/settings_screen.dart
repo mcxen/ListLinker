@@ -167,12 +167,12 @@ class _SettingsContainerState extends State<_SettingsContainer>
       SettingsMenu(
           menuId: MenuId.localVideos,
           name: Intl.settingsScreen_item_localVideos.tr,
-          icon: Images.fileTypeVideo,
+          icon: Images.settingsScreenPlayer,
           route: NamedRouter.localVideos),
       SettingsMenu(
           menuId: MenuId.smb,
           name: Intl.settingsScreen_item_smb.tr,
-          icon: Images.fileTypeFolder,
+          icon: Images.settingsScreenDownload,
           route: NamedRouter.smb),
       SettingsMenu(
           menuId: MenuId.privacyPolicy,

@@ -44,4 +44,10 @@ class AlistConstant {
 
   /// Saved SMB connection list (JSON).
   static const String smbConnections = 'smbConnections';
+
+  /// Desktop file workspace preferences.
+  static const String desktopFileLocations = 'desktopFileLocations';
+  static const String desktopFileDualPane = 'desktopFileDualPane';
+  static const String desktopFileGridView = 'desktopFileGridView';
+  static const String desktopFileShowInfo = 'desktopFileShowInfo';
 }

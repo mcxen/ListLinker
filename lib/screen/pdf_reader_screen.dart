@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:dart_pdf_editor/dart_pdf_editor.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:list_linker/database/alist_database_controller.dart';
+import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/util/download/download_manager.dart';
 import 'package:list_linker/util/download/download_task.dart';
 import 'package:list_linker/util/download/download_task_status.dart';
@@ -13,7 +17,9 @@ import 'package:list_linker/widget/overflow_text.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
+import 'package:path/path.dart' as p;
 
 class PdfReaderScreen extends StatelessWidget {
   final PdfReaderScreenController _controller =
@@ -30,33 +36,149 @@ class PdfReaderScreen extends StatelessWidget {
           loading: _controller.loading.value,
           retryCallback: () => _controller.retry(),
           errorMsg: _controller.errMsg.value,
-          child: _buildPDFView(),
+          child: _buildPDFView(context),
         ),
       ),
     );
   }
 
-  Widget _buildPDFView() {
+  Widget _buildPDFView(BuildContext context) {
     return Obx(
       () => _controller.localPath.value.isNotEmpty
-          ? PDFView(
-              filePath: _controller.localPath.value,
-              autoSpacing: !Platform.isAndroid,
-              pageSnap: false,
-              enableSwipe: true,
-              pageFling: false,
-              fitEachPage: false,
-              fitPolicy: FitPolicy.WIDTH,
-              preventLinkNavigation: true,
-              onLinkHandler: (url) {
-                Get.toNamed(NamedRouter.web, arguments: {"url": url});
-              },
-              nightMode: Get.isDarkMode,
-              onError: (e) {
-                LogUtil.e(e);
-              },
-            )
+          ? GetPlatform.isDesktop
+              ? _DesktopPdfEditor(path: _controller.localPath.value)
+              : PDFView(
+                  filePath: _controller.localPath.value,
+                  autoSpacing: !Platform.isAndroid,
+                  pageSnap: false,
+                  enableSwipe: true,
+                  pageFling: false,
+                  fitEachPage: false,
+                  fitPolicy: FitPolicy.WIDTH,
+                  preventLinkNavigation: true,
+                  onLinkHandler: (url) {
+                    Get.toNamed(NamedRouter.web, arguments: {"url": url});
+                  },
+                  nightMode: Get.isDarkMode,
+                  onError: (e) {
+                    LogUtil.e(e);
+                  },
+                )
           : const SizedBox(),
+    );
+  }
+}
+
+class _DesktopPdfEditor extends StatefulWidget {
+  const _DesktopPdfEditor({required this.path});
+
+  final String path;
+
+  @override
+  State<_DesktopPdfEditor> createState() => _DesktopPdfEditorState();
+}
+
+class _DesktopPdfEditorState extends State<_DesktopPdfEditor> {
+  final PdfViewerController _viewerController = PdfViewerController();
+  Uint8List? _bytes;
+  Object? _error;
+  bool _appliedActualSize = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewerController.addListener(_onViewerChanged);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _viewerController.removeListener(_onViewerChanged);
+    _viewerController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final bytes = await File(widget.path).readAsBytes();
+      if (!mounted) return;
+      setState(() => _bytes = bytes);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error);
+    }
+  }
+
+  void _onViewerChanged() {
+    if (_appliedActualSize || _viewerController.pageCount == 0) return;
+    _appliedActualSize = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _viewerController.resetZoom();
+    });
+  }
+
+  Future<void> _save(Uint8List bytes) async {
+    try {
+      await File(widget.path).writeAsBytes(bytes, flush: true);
+      SmartDialog.showToast(Intl.pdfReader_saved.tr);
+    } catch (error) {
+      SmartDialog.showToast('${Intl.pdfReader_saveFailed.tr}: $error');
+    }
+  }
+
+  Future<void> _saveAs(Uint8List bytes) async {
+    final location = await getSaveLocation(
+      suggestedName: p.basename(widget.path),
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'PDF', extensions: ['pdf']),
+      ],
+    );
+    if (location == null) return;
+    var target = location.path;
+    if (p.extension(target).toLowerCase() != '.pdf') target = '$target.pdf';
+    try {
+      await File(target).writeAsBytes(bytes, flush: true);
+      SmartDialog.showToast('${Intl.pdfReader_saved.tr}\n$target');
+    } catch (error) {
+      SmartDialog.showToast('${Intl.pdfReader_saveFailed.tr}: $error');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text('${Intl.pdfReader_openFailed.tr}\n$_error'),
+        ),
+      );
+    }
+    final bytes = _bytes;
+    if (bytes == null) return const Center(child: CircularProgressIndicator());
+    return PdfEditorView(
+      key: ValueKey(widget.path),
+      bytes: bytes,
+      documentId: widget.path,
+      viewerController: _viewerController,
+      initialFit: PdfViewerFit.page,
+      features: const PdfEditorFeatures(
+        reflowView: false,
+        pageColorEditable: false,
+        flatten: false,
+        colorProcessing: false,
+        tools: {
+          PdfEditTool.select,
+          PdfEditTool.ink,
+          PdfEditTool.highlight,
+          PdfEditTool.eraser,
+          PdfEditTool.rectangle,
+          PdfEditTool.freeText,
+          PdfEditTool.note,
+        },
+      ),
+      onSave: _save,
+      onSaveAs: _saveAs,
     );
   }
 }
@@ -81,14 +203,14 @@ class PdfReaderScreenController extends GetxController {
               user.serverUrl, user.username, pdfItem.remotePath)
           .then((value) {
         if (value != null && File(value.localPath).existsSync()) {
-          localPath.value = "file://${value.localPath}";
+          localPath.value = value.localPath;
         } else {
           _download();
           _listenStatus();
         }
       });
     } else if (pdfItem.localPath?.isNotEmpty == true) {
-      localPath.value = "file://${pdfItem.localPath}";
+      localPath.value = pdfItem.localPath!;
     }
   }
 
@@ -132,7 +254,7 @@ class PdfReaderScreenController extends GetxController {
     if (_downloadTask?.status == DownloadTaskStatus.finished) {
       errMsg.value = "";
       loading.value = false;
-      localPath.value = "file://${_downloadTask!.record.localPath}";
+      localPath.value = _downloadTask!.record.localPath;
     }
   }
 
@@ -145,7 +267,7 @@ class PdfReaderScreenController extends GetxController {
       if (task.status == DownloadTaskStatus.finished) {
         errMsg.value = "";
         loading.value = false;
-        localPath.value = "file://${task.record.localPath}";
+        localPath.value = task.record.localPath;
       } else if (task.status == DownloadTaskStatus.failed) {
         errMsg.value = task.failedReason ?? "";
         loading.value = false;

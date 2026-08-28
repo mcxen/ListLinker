@@ -51,26 +51,39 @@ class GalleryScreen extends StatelessWidget {
       ],
     );
 
-    return GalleryMenuAnchor(
-        controller: controller,
-        child: widget,
-        onMenuClickCallback: (menuId) {
-          switch (menuId) {
-            case GalleryMenuId.copyLink:
-              Clipboard.setData(
-                  ClipboardData(text: controller.urls[controller.index.value]));
-              SmartDialog.showToast(Intl.galleryScreen_copied.tr);
-              break;
-            case GalleryMenuId.saveToAlbum:
-              controller.saveToAlbum(controller.index.value);
-              break;
-          }
-        });
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.arrowLeft):
+            controller.showPrevious,
+        const SingleActivator(LogicalKeyboardKey.arrowRight):
+            controller.showNext,
+        const SingleActivator(LogicalKeyboardKey.escape): () => Get.back(),
+      },
+      child: Focus(
+        autofocus: true,
+        child: GalleryMenuAnchor(
+          controller: controller,
+          child: widget,
+          onMenuClickCallback: (menuId) {
+            switch (menuId) {
+              case GalleryMenuId.copyLink:
+                Clipboard.setData(ClipboardData(
+                    text: controller.urls[controller.index.value]));
+                SmartDialog.showToast(Intl.galleryScreen_copied.tr);
+                break;
+              case GalleryMenuId.saveToAlbum:
+                controller.saveToAlbum(controller.index.value);
+                break;
+            }
+          },
+        ),
+      ),
+    );
   }
 
   AppBar _buildAppBar(GalleryController controller) {
     return AppBar(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.black.withOpacity(0.58),
       foregroundColor: Colors.white,
       elevation: 0,
       title: controller.files == null
@@ -83,7 +96,20 @@ class GalleryScreen extends StatelessWidget {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
       ),
-      actions: [_menuMoreIcon(controller)],
+      actions: [
+        Obx(
+          () => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Center(
+              child: Text(
+                '${controller.index.value + 1} / ${controller.urls.length}',
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ),
+          ),
+        ),
+        _menuMoreIcon(controller),
+      ],
     );
   }
 
@@ -179,12 +205,21 @@ class GalleryController extends GetxController {
       return;
     }
 
-    AlistDatabaseController databaseController = Get.find();
-    UserController userController = Get.find();
-    var user = userController.user.value;
-
     List<String> urls = [];
+    AlistDatabaseController? databaseController;
+    UserController? userController;
     for (var file in files) {
+      final existingLocalPath = file.localPath;
+      if (existingLocalPath != null &&
+          existingLocalPath.isNotEmpty &&
+          io.File(existingLocalPath).existsSync()) {
+        urls.add(Uri.file(existingLocalPath).toString());
+        continue;
+      }
+
+      databaseController ??= Get.find<AlistDatabaseController>();
+      userController ??= Get.find<UserController>();
+      final user = userController.user.value;
       if (file.localPath == null || file.localPath!.isEmpty) {
         var record = await databaseController.downloadRecordRecordDao
             .findRecordByRemotePath(
@@ -193,6 +228,8 @@ class GalleryController extends GetxController {
           var localFile = io.File(record.localPath);
           if (localFile.existsSync()) {
             file.localPath = record.localPath;
+            urls.add(Uri.file(record.localPath).toString());
+            continue;
           }
         }
       }
@@ -209,6 +246,22 @@ class GalleryController extends GetxController {
   void updateIndex(int index) {
     this.index.value = index;
     LogUtil.d("update index=$index");
+  }
+
+  void showPrevious() {
+    if (index.value <= 0) return;
+    pageController.previousPage(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void showNext() {
+    if (index.value >= urls.length - 1) return;
+    pageController.nextPage(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<void> saveToAlbum(int index) async {
@@ -239,7 +292,7 @@ class GalleryController extends GetxController {
               SmartDialog.showToast(Intl.galleryScreen_savePhotoSucceed.tr));
       return;
     }
-    
+
     var cacheFile = await getCachedImageFile(url);
     if (cacheFile == null) {
       SmartDialog.showToast(Intl.galleryScreen_loadPhotoFailed.tr);
@@ -258,7 +311,7 @@ class GalleryController extends GetxController {
     if (kIsWeb) {
       return originalName;
     }
-    
+
     if (io.Platform.isIOS) {
       return originalName;
     } else {
@@ -319,8 +372,7 @@ class _ImageContainer extends StatelessWidget {
         },
       );
     }
-    
-    // Native platform with local path: use network with file:// URI
+
     return ExtendedImage.network(
       Uri.file(localPath!).toString(),
       fit: BoxFit.contain,

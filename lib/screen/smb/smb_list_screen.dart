@@ -2,15 +2,18 @@ import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/util/smb/smb_connection_config.dart';
 import 'package:list_linker/util/smb/smb_service.dart';
-import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 /// List of saved SMB connections.
 class SmbListScreen extends StatelessWidget {
-  const SmbListScreen({super.key});
+  const SmbListScreen({super.key, this.onOpenConnection});
+
+  final void Function(SmbConnectionConfig config, String startPath)?
+      onOpenConnection;
 
   @override
   Widget build(BuildContext context) {
@@ -20,62 +23,66 @@ class SmbListScreen extends StatelessWidget {
       appbarActions: [
         IconButton(
           onPressed: () => Get.toNamed(NamedRouter.smbScan),
-          icon: const Icon(Icons.radar),
+          icon: const Icon(Icons.radar_rounded),
           tooltip: Intl.smb_scanTitle.tr,
         ),
         IconButton(
           onPressed: () => _showEditDialog(context, smb),
           icon: const Icon(Icons.add_rounded),
+          tooltip: Intl.smb_addConnection.tr,
         ),
       ],
       body: Obx(() {
         if (smb.connections.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.storage_outlined,
-                      size: 64, color: Theme.of(context).colorScheme.outline),
-                  const SizedBox(height: 16),
-                  Text(
-                    Intl.smb_emptyHint.tr,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: () => _showEditDialog(context, smb),
-                    icon: const Icon(Icons.add_rounded),
-                    label: Text(Intl.smb_addConnection.tr),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () => Get.toNamed(NamedRouter.smbScan),
-                    icon: const Icon(Icons.radar),
-                    label: Text(Intl.smb_scanTitle.tr),
-                  ),
-                ],
+          return ListView(
+            padding: AppUi.pageInsets(context, top: 20),
+            children: [
+              AppEmptyState(
+                expand: false,
+                icon: Icons.dns_rounded,
+                title: Intl.screenName_smb.tr,
+                body: Intl.smb_emptyHint.tr,
+                primaryAction: FilledButton.icon(
+                  onPressed: () => _showEditDialog(context, smb),
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(Intl.smb_addConnection.tr),
+                ),
+                secondaryAction: OutlinedButton.icon(
+                  onPressed: () => Get.toNamed(NamedRouter.smbScan),
+                  icon: const Icon(Icons.radar_rounded),
+                  label: Text(Intl.smb_scanTitle.tr),
+                ),
               ),
-            ),
+            ],
           );
         }
+
         return ListView.separated(
-          padding: WidgetUtils.listViewPadding(context),
+          padding: EdgeInsets.only(
+            top: 8,
+            bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+          ),
           itemCount: smb.connections.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, __) => const AppInsetDivider(),
           itemBuilder: (context, index) {
             final item = smb.connections[index];
-            return ListTile(
-              leading: const Icon(Icons.dns_outlined),
-              title: Text(item.name),
-              subtitle: Text(
-                item.share.isEmpty
-                    ? '${item.host}${item.username.isEmpty ? '' : ' · ${item.username}'}'
-                    : '\\\\${item.host}\\${item.share}',
-              ),
+            final subtitle = item.share.isEmpty
+                ? [
+                    item.host,
+                    if (item.username.isNotEmpty) item.username,
+                  ].join(' · ')
+                : '\\\\${item.host}\\${item.share}';
+            return AppListTile(
+              leadingIcon: Icons.storage_rounded,
+              title: item.name,
+              subtitle: subtitle,
+              showChevron: true,
               onTap: () => _open(context, smb, item),
               trailing: PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 onSelected: (value) async {
                   if (value == 'edit') {
                     await _showEditDialog(context, smb, existing: item);
@@ -110,8 +117,13 @@ class SmbListScreen extends StatelessWidget {
     try {
       await smb.connect(config);
       SmartDialog.dismiss();
-      final startPath =
-          config.share.isEmpty ? null : '/${config.share.replaceAll('\\', '/')}';
+      final startPath = config.share.isEmpty
+          ? null
+          : '/${config.share.replaceAll('\\', '/')}';
+      if (onOpenConnection != null) {
+        onOpenConnection!(config, startPath ?? '');
+        return;
+      }
       Get.toNamed(
         NamedRouter.smbBrowser,
         arguments: {
@@ -143,58 +155,55 @@ class SmbListScreen extends StatelessWidget {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(existing == null
-              ? Intl.smb_addConnection.tr
-              : Intl.smb_edit.tr),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(labelText: Intl.smb_label_name.tr),
-                  textInputAction: TextInputAction.next,
-                ),
-                TextField(
-                  controller: hostCtrl,
-                  decoration: InputDecoration(labelText: Intl.smb_label_host.tr),
-                  keyboardType: TextInputType.url,
-                  textInputAction: TextInputAction.next,
-                ),
-                TextField(
-                  controller: portCtrl,
-                  decoration: InputDecoration(labelText: Intl.smb_label_port.tr),
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.next,
-                ),
-                TextField(
-                  controller: shareCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_share.tr),
-                  textInputAction: TextInputAction.next,
-                ),
-                TextField(
-                  controller: domainCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_domain.tr),
-                  textInputAction: TextInputAction.next,
-                ),
-                TextField(
-                  controller: userCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_username.tr),
-                  textInputAction: TextInputAction.next,
-                ),
-                TextField(
-                  controller: passCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_password.tr),
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                ),
-              ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          title: Text(
+            existing == null ? Intl.smb_addConnection.tr : Intl.smb_edit.tr,
+          ),
+          content: SizedBox(
+            width: 360,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppFormField(
+                    controller: nameCtrl,
+                    label: Intl.smb_label_name.tr,
+                  ),
+                  AppFormField(
+                    controller: hostCtrl,
+                    label: Intl.smb_label_host.tr,
+                    keyboardType: TextInputType.url,
+                  ),
+                  AppFormField(
+                    controller: portCtrl,
+                    label: Intl.smb_label_port.tr,
+                    keyboardType: TextInputType.number,
+                  ),
+                  AppFormField(
+                    controller: shareCtrl,
+                    label: Intl.smb_label_share.tr,
+                  ),
+                  AppFormField(
+                    controller: domainCtrl,
+                    label: Intl.smb_label_domain.tr,
+                  ),
+                  AppFormField(
+                    controller: userCtrl,
+                    label: Intl.smb_label_username.tr,
+                  ),
+                  AppFormField(
+                    controller: passCtrl,
+                    label: Intl.smb_label_password.tr,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                  ),
+                ],
+              ),
             ),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -215,8 +224,7 @@ class SmbListScreen extends StatelessWidget {
       SmartDialog.showToast(Intl.smb_hostRequired.tr);
       return;
     }
-    final name =
-        nameCtrl.text.trim().isEmpty ? host : nameCtrl.text.trim();
+    final name = nameCtrl.text.trim().isEmpty ? host : nameCtrl.text.trim();
     final port = int.tryParse(portCtrl.text.trim()) ?? 445;
     final config = existing == null
         ? SmbService.newConfig(

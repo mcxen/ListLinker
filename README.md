@@ -21,7 +21,7 @@ ListLinker 是一款功能丰富的文件管理应用，支持 Android、iOS、m
 
 | 模块 | 技术选型 |
 |------|---------|
-| 框架 | Flutter 3.13.x (Dart >=3.0) |
+| 框架 | Flutter 3.47.2 (Dart >=3.5) |
 | 状态管理 | GetX |
 | 网络请求 | Dio |
 | 本地数据库 | Floor (SQLite) |
@@ -46,8 +46,8 @@ ListLinker 是一款功能丰富的文件管理应用，支持 Android、iOS、m
 
 ### 环境要求
 
-- Flutter SDK >= 3.13.8
-- Dart SDK >= 3.0
+- Flutter SDK >= 3.47.2
+- Dart SDK >= 3.5
 - [FVM](https://fvm.app/) (推荐，项目已配置 FVM)
 
 ### 构建步骤

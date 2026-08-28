@@ -1,8 +1,8 @@
 import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/util/smb/smb_lan_scanner.dart';
 import 'package:list_linker/util/smb/smb_service.dart';
-import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -65,41 +65,77 @@ class _SmbScanScreenState extends State<SmbScanScreen> {
   @override
   Widget build(BuildContext context) {
     final progress = _total == 0 ? 0.0 : _scanned / _total;
+    final scheme = Theme.of(context).colorScheme;
+
     return AlistScaffold(
       appbarTitle: Text(Intl.smb_scanTitle.tr),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              Intl.smb_scanHint.tr,
-              style: Theme.of(context).textTheme.bodyMedium,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer.withOpacity(0.45),
+                borderRadius: BorderRadius.circular(AppUi.radius),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 20, color: scheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      Intl.smb_scanHint.tr,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            height: 1.4,
+                            color: scheme.onSurface,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           if (_scanning)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  LinearProgressIndicator(value: progress == 0 ? null : progress),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      minHeight: 6,
+                      value: progress == 0 ? null : progress,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text('$_scanned / $_total'),
+                  Text(
+                    '$_scanned / $_total',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: AppUi.muted(context),
+                        ),
+                  ),
                 ],
               ),
             ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: _scanning ? null : _startScan,
-                    icon: const Icon(Icons.radar),
+                    icon: const Icon(Icons.radar_rounded),
                     label: Text(Intl.smb_startScan.tr),
                   ),
                 ),
                 if (_scanning) ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   OutlinedButton(
                     onPressed: () => _cancel = true,
                     child: Text(Intl.smb_cancel.tr),
@@ -108,29 +144,34 @@ class _SmbScanScreenState extends State<SmbScanScreen> {
               ],
             ),
           ),
-          const Divider(height: 1),
+          const AppInsetDivider(),
           Expanded(
             child: _hosts.isEmpty
-                ? Center(
-                    child: Text(
-                      _scanning
-                          ? Intl.smb_scanning.tr
-                          : Intl.smb_scanEmpty.tr,
-                    ),
+                ? AppEmptyState(
+                    icon: _scanning
+                        ? Icons.wifi_find_rounded
+                        : Icons.lan_outlined,
+                    title: _scanning
+                        ? Intl.smb_scanning.tr
+                        : Intl.smb_scanEmpty.tr,
+                    body: _scanning ? null : Intl.smb_scanHint.tr,
                   )
                 : ListView.separated(
-                    padding: WidgetUtils.listViewPadding(context),
+                    padding: EdgeInsets.only(
+                      top: 4,
+                      bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+                    ),
                     itemCount: _hosts.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) => const AppInsetDivider(),
                     itemBuilder: (context, index) {
                       final host = _hosts[index];
-                      return ListTile(
-                        leading: const Icon(Icons.computer_outlined),
-                        title: Text(host.ip),
-                        subtitle: Text('SMB :${host.port}'),
-                        trailing: TextButton(
+                      return AppListTile(
+                        leadingIcon: Icons.computer_rounded,
+                        title: host.ip,
+                        subtitle: 'SMB · :${host.port}',
+                        trailing: FilledButton.tonal(
                           onPressed: () => _addHost(host),
-                          child: Text(Intl.smb_addConnection.tr),
+                          child: Text(Intl.smb_add.tr),
                         ),
                       );
                     },
@@ -153,41 +194,55 @@ class _SmbScanScreenState extends State<SmbScanScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           title: Text(Intl.smb_addConnection.tr),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_name.tr),
-                ),
-                Text('${Intl.smb_label_host.tr}: ${host.ip}'),
-                TextField(
-                  controller: shareCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_share.tr),
-                ),
-                TextField(
-                  controller: domainCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_domain.tr),
-                ),
-                TextField(
-                  controller: userCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_username.tr),
-                ),
-                TextField(
-                  controller: passCtrl,
-                  decoration:
-                      InputDecoration(labelText: Intl.smb_label_password.tr),
-                  obscureText: true,
-                ),
-              ],
+          content: SizedBox(
+            width: 360,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppFormField(
+                    controller: nameCtrl,
+                    label: Intl.smb_label_name.tr,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${Intl.smb_label_host.tr}: ${host.ip}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppUi.muted(context),
+                            ),
+                      ),
+                    ),
+                  ),
+                  AppFormField(
+                    controller: shareCtrl,
+                    label: Intl.smb_label_share.tr,
+                  ),
+                  AppFormField(
+                    controller: domainCtrl,
+                    label: Intl.smb_label_domain.tr,
+                  ),
+                  AppFormField(
+                    controller: userCtrl,
+                    label: Intl.smb_label_username.tr,
+                  ),
+                  AppFormField(
+                    controller: passCtrl,
+                    label: Intl.smb_label_password.tr,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                  ),
+                ],
+              ),
             ),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),

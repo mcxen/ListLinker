@@ -6,8 +6,8 @@ import 'package:list_linker/util/file_type.dart';
 import 'package:list_linker/util/file_utils.dart';
 import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/util/video_player_util.dart';
-import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_document_picker/flutter_document_picker.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -30,87 +30,103 @@ class _LocalVideoScreenState extends State<LocalVideoScreen> {
   Widget build(BuildContext context) {
     return AlistScaffold(
       appbarTitle: Text(Intl.screenName_localVideos.tr),
-      appbarActions: [
-        IconButton(
-          onPressed: () => Get.toNamed(NamedRouter.localStorageBrowser),
-          icon: const Icon(Icons.sd_storage_outlined),
-          tooltip: Intl.localVideos_browseStorage.tr,
+      body: _recent.isEmpty ? _buildEmpty() : _buildList(),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return ListView(
+      padding: AppUi.pageInsets(context, top: 20),
+      children: [
+        AppEmptyState(
+          expand: false,
+          icon: Icons.movie_filter_outlined,
+          title: Intl.screenName_localVideos.tr,
+          body: Intl.localVideos_emptyHint.tr,
         ),
-        IconButton(
-          onPressed: _pickFromGallery,
-          icon: const Icon(Icons.video_library_outlined),
-          tooltip: Intl.localVideos_pickGallery.tr,
+        const SizedBox(height: 28),
+        AppSectionHeader(Intl.localVideos_section_sources.tr),
+        Row(
+          children: [
+            Expanded(
+              child: AppActionCard(
+                icon: Icons.video_library_rounded,
+                label: Intl.localVideos_pickGallery.tr,
+                caption: Intl.localVideos_caption_gallery.tr,
+                onTap: _pickFromGallery,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: AppActionCard(
+                icon: Icons.folder_open_rounded,
+                label: Intl.localVideos_pickFiles.tr,
+                caption: Intl.localVideos_caption_files.tr,
+                onTap: _pickDocuments,
+              ),
+            ),
+          ],
         ),
-        IconButton(
-          onPressed: _pickDocuments,
-          icon: const Icon(Icons.folder_open_rounded),
-          tooltip: Intl.localVideos_pickFiles.tr,
+        const SizedBox(height: 10),
+        AppActionCard(
+          icon: Icons.sd_storage_rounded,
+          label: Intl.localVideos_browseStorage.tr,
+          caption: Intl.localVideos_caption_storage.tr,
+          onTap: () => Get.toNamed(NamedRouter.localStorageBrowser),
         ),
       ],
-      body: _recent.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.video_file_outlined,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      Intl.localVideos_emptyHint.tr,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton.icon(
-                      onPressed: _pickFromGallery,
-                      icon: const Icon(Icons.video_library_outlined),
-                      label: Text(Intl.localVideos_pickGallery.tr),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _pickDocuments,
-                      icon: const Icon(Icons.folder_open_rounded),
-                      label: Text(Intl.localVideos_pickFiles.tr),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () =>
-                          Get.toNamed(NamedRouter.localStorageBrowser),
-                      icon: const Icon(Icons.sd_storage_outlined),
-                      label: Text(Intl.localVideos_browseStorage.tr),
-                    ),
-                  ],
-                ),
+    );
+  }
+
+  Widget _buildList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: AppSectionHeader(Intl.localVideos_section_recent.tr),
               ),
-            )
-          : ListView.separated(
-              padding: WidgetUtils.listViewPadding(context),
-              itemCount: _recent.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final item = _recent[index];
-                return ListTile(
-                  leading: const Icon(Icons.movie_outlined),
-                  title: Text(item.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(
-                    item.path,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  onTap: () => _playAt(index),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.play_circle_outline),
-                    onPressed: () => _playAt(index),
-                  ),
-                );
-              },
+              TextButton.icon(
+                onPressed: _pickFromGallery,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(Intl.localVideos_add.tr),
+              ),
+              IconButton(
+                tooltip: Intl.localVideos_browseStorage.tr,
+                onPressed: () => Get.toNamed(NamedRouter.localStorageBrowser),
+                icon: const Icon(Icons.sd_storage_outlined),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: EdgeInsets.only(
+              bottom: 16 +
+                  MediaQuery.viewPaddingOf(context).bottom,
             ),
+            itemCount: _recent.length,
+            separatorBuilder: (_, __) => const AppInsetDivider(),
+            itemBuilder: (context, index) {
+              final item = _recent[index];
+              return AppListTile(
+                leadingIcon: Icons.movie_outlined,
+                title: item.name,
+                subtitle: item.path,
+                onTap: () => _playAt(index),
+                trailing: Icon(
+                  Icons.play_circle_fill_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 28,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -135,7 +151,8 @@ class _LocalVideoScreenState extends State<LocalVideoScreen> {
       );
       SmartDialog.dismiss();
       if (paths == null || paths.isEmpty) return;
-      final valid = paths.whereType<String>().where((e) => e.isNotEmpty).toList();
+      final valid =
+          paths.whereType<String>().where((e) => e.isNotEmpty).toList();
       if (valid.isEmpty) return;
       await _addAndPlay(valid);
     } catch (e) {
@@ -149,7 +166,6 @@ class _LocalVideoScreenState extends State<LocalVideoScreen> {
     for (final path in paths) {
       final name = p.basename(path);
       final type = FileUtils.getFileType(false, name);
-      // Accept explicit video types, or unknown extension files when user picked them.
       if (type != FileType.video && !_looksLikeVideo(name)) {
         continue;
       }

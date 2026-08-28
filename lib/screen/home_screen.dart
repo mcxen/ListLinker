@@ -7,8 +7,10 @@ import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/net/dio_utils.dart';
 import 'package:list_linker/router.dart';
 import 'package:list_linker/screen/file_list/file_list_navigator.dart';
+import 'package:list_linker/screen/local_storage_browser_screen.dart';
 import 'package:list_linker/screen/recents_screen.dart';
 import 'package:list_linker/screen/settings_screen.dart';
+import 'package:list_linker/screen/smb/smb_workspace_screen.dart';
 import 'package:list_linker/util/constant.dart';
 import 'package:list_linker/util/global.dart';
 import 'package:list_linker/widget/bottom_navigation_bar.dart';
@@ -19,7 +21,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:sp_util/sp_util.dart';
 
 import 'favorite_screen.dart';
 
@@ -30,27 +31,50 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+enum _HomeDestination {
+  cloud,
+  local,
+  smb,
+  recents,
+  favorites,
+  settings,
+}
+
 class _HomeScreenState extends State<HomeScreen> {
-  final PageController _pageController = PageController(initialPage: 0);
-  int _currentPage = 0;
+  static const double _desktopNavigationBreakpoint = 760;
+  static const _mobileDestinations = [
+    _HomeDestination.cloud,
+    _HomeDestination.recents,
+    _HomeDestination.favorites,
+    _HomeDestination.settings,
+  ];
+
+  static const _offlineDestinations = [
+    _HomeDestination.local,
+    _HomeDestination.smb,
+    _HomeDestination.settings,
+  ];
+
+  _HomeDestination _currentDestination = _HomeDestination.cloud;
+  late final bool _offlineMode;
 
   @override
   void initState() {
     super.initState();
-    _pageController.addListener(() {
-      setState(() {
-        _currentPage = _pageController.page?.round() ?? 0;
-      });
-    });
-    _httpCheckAppVersion();
+    final args = Get.arguments;
+    _offlineMode = args is Map && args['offline'] == true;
+    if (_offlineMode) {
+      _currentDestination = _HomeDestination.local;
+    } else {
+      _httpCheckAppVersion();
+    }
     _maybeShowWhatsNew();
   }
 
-  void _onBottomNavTap(int idx) {
+  void _onDestinationSelected(_HomeDestination destination) {
     HapticFeedback.selectionClick();
-    if (idx == _currentPage) {
-      // Reselect: scroll/pop the active tab to its root/top.
-      if (idx == 0) {
+    if (destination == _currentDestination) {
+      if (destination == _HomeDestination.cloud) {
         Get.until((route) => route.isFirst,
             id: AlistRouter.fileListRouterStackId);
       } else {
@@ -65,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       return;
     }
-    _pageController.jumpToPage(idx);
+    setState(() => _currentDestination = destination);
   }
 
   Future<void> _maybeShowWhatsNew() async {
@@ -105,51 +129,166 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        children: <Widget>[
-          FileListNavigator(
-            isInFileListStack: _currentPage == 0,
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useDesktopNavigation = _offlineMode ||
+            constraints.maxWidth >= _desktopNavigationBreakpoint;
+        final effectiveDestination = useDesktopNavigation ||
+                _mobileDestinations.contains(_currentDestination)
+            ? _currentDestination
+            : _HomeDestination.cloud;
+        final pages = <Widget>[
+          _offlineMode
+              ? const SizedBox.shrink()
+              : FileListNavigator(
+                  isInFileListStack:
+                      effectiveDestination == _HomeDestination.cloud,
+                ),
+          const LocalStorageBrowserScreen(embedded: true),
+          const SmbWorkspaceScreen(),
           const RecentsScreen(),
           const FavoriteScreen(),
           const SettingsScreen(),
-        ],
+        ];
+        final content = IndexedStack(
+          index: effectiveDestination.index,
+          children: pages,
+        );
+
+        return Scaffold(
+          body: useDesktopNavigation
+              ? Row(
+                  children: [
+                    _buildDesktopMenu(context),
+                    VerticalDivider(
+                      width: 1,
+                      thickness: 1,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withOpacity(0.55),
+                    ),
+                    Expanded(child: content),
+                  ],
+                )
+              : content,
+          bottomNavigationBar:
+              useDesktopNavigation ? null : _buildBottomNavigationBar(),
+        );
+      },
+    );
+  }
+
+  Widget _buildDesktopMenu(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final destinations =
+        _offlineMode ? _offlineDestinations : _HomeDestination.values;
+
+    return SizedBox(
+      width: 224,
+      child: Material(
+        color: scheme.surfaceContainerHighest.withOpacity(0.32),
+        child: NavigationRail(
+          extended: true,
+          minExtendedWidth: 224,
+          selectedIndex: destinations.indexOf(_currentDestination),
+          groupAlignment: -1,
+          useIndicator: true,
+          leading: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 16, 22),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                Intl.appName.tr,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+          ),
+          onDestinationSelected: (index) =>
+              _onDestinationSelected(destinations[index]),
+          destinations: destinations.map(_buildRailDestination).toList(),
+        ),
       ),
-      bottomNavigationBar: AlistBottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.folder_rounded),
-            label: Intl.screenName_home.tr,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.timelapse_rounded),
-            label: Intl.screenName_recents.tr,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.star_rounded),
-            label: Intl.screenName_favorite.tr,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings_rounded),
-            label: Intl.screenName_settings.tr,
-          )
-        ],
-        currentIndex: _currentPage,
-        type: BottomNavigationBarType.fixed,
-        onTap: _onBottomNavTap,
-        onLongPress: (int idx) {
-          LogUtil.d("onDoubleTap: $idx");
-          if (idx == 0 && _currentPage == 0) {
-            Get.until((route) => route.isFirst,
-                id: AlistRouter.fileListRouterStackId);
-          } else {
-            _pageController.jumpToPage(idx);
-          }
-        },
-      ),
+    );
+  }
+
+  NavigationRailDestination _buildRailDestination(
+    _HomeDestination destination,
+  ) {
+    return switch (destination) {
+      _HomeDestination.cloud => NavigationRailDestination(
+          icon: const Icon(Icons.cloud_outlined),
+          selectedIcon: const Icon(Icons.cloud_rounded),
+          label: Text(Intl.screenName_home.tr),
+        ),
+      _HomeDestination.local => NavigationRailDestination(
+          icon: const Icon(Icons.folder_outlined),
+          selectedIcon: const Icon(Icons.folder_rounded),
+          label: Text(Intl.screenName_localFiles.tr),
+        ),
+      _HomeDestination.smb => NavigationRailDestination(
+          icon: const Icon(Icons.dns_outlined),
+          selectedIcon: const Icon(Icons.dns_rounded),
+          label: Text(Intl.screenName_smb.tr),
+        ),
+      _HomeDestination.recents => NavigationRailDestination(
+          icon: const Icon(Icons.history_outlined),
+          selectedIcon: const Icon(Icons.history_rounded),
+          label: Text(Intl.screenName_recents.tr),
+        ),
+      _HomeDestination.favorites => NavigationRailDestination(
+          icon: const Icon(Icons.star_outline_rounded),
+          selectedIcon: const Icon(Icons.star_rounded),
+          label: Text(Intl.screenName_favorite.tr),
+        ),
+      _HomeDestination.settings => NavigationRailDestination(
+          icon: const Icon(Icons.settings_outlined),
+          selectedIcon: const Icon(Icons.settings_rounded),
+          label: Text(Intl.screenName_settings.tr),
+        ),
+    };
+  }
+
+  Widget _buildBottomNavigationBar() {
+    final effectiveDestination =
+        _mobileDestinations.contains(_currentDestination)
+            ? _currentDestination
+            : _HomeDestination.cloud;
+    return AlistBottomNavigationBar(
+      items: <BottomNavigationBarItem>[
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.folder_rounded),
+          label: Intl.screenName_home.tr,
+        ),
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.timelapse_rounded),
+          label: Intl.screenName_recents.tr,
+        ),
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.star_rounded),
+          label: Intl.screenName_favorite.tr,
+        ),
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.settings_rounded),
+          label: Intl.screenName_settings.tr,
+        )
+      ],
+      currentIndex: _mobileDestinations.indexOf(effectiveDestination),
+      type: BottomNavigationBarType.fixed,
+      onTap: (index) => _onDestinationSelected(_mobileDestinations[index]),
+      onLongPress: (int idx) {
+        LogUtil.d("onDoubleTap: $idx");
+        final destination = _mobileDestinations[idx];
+        if (destination == _HomeDestination.cloud &&
+            _currentDestination == _HomeDestination.cloud) {
+          Get.until((route) => route.isFirst,
+              id: AlistRouter.fileListRouterStackId);
+        } else {
+          _onDestinationSelected(destination);
+        }
+      },
     );
   }
 
