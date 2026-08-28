@@ -1,3 +1,9 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'dev.flutter.flutter-gradle-plugin'
+}
+
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
@@ -21,12 +27,6 @@ def keyPassword = localProperties.getProperty('keyPassword')
 def storeFile = localProperties.getProperty('storeFile')
 def storePassword = localProperties.getProperty('storePassword')
 def hasStoreFile = storeFile != null && storeFile != ''
-
-plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
-    id 'dev.flutter.flutter-gradle-plugin'
-}
 
 android {
     namespace 'com.example.listlinker'

@@ -44,7 +44,7 @@ jobs:
             os: ubuntu-latest
             setup: |
               sudo apt-get update -y
-              sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
+              sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libmpv-dev
             build-cmd: flutter build linux --release
             artifact-path: build/linux/x64/release/bundle
 
