@@ -64,7 +64,13 @@ class _AboutPageContainerState extends State<_AboutPageContainer> {
   }
 
   initPackageInfo() async {
-    packageInfo = await PackageInfo.fromPlatform();
-    setState(() {});
+    try {
+      packageInfo = await PackageInfo.fromPlatform();
+    } catch (_) {
+      packageInfo = null;
+    }
+    if (mounted) {
+      setState(() {});
+    }
   }
 }

@@ -93,7 +93,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    final packageInfo = await PackageInfo.fromPlatform();
+    PackageInfo packageInfo;
+    try {
+      packageInfo = await PackageInfo.fromPlatform();
+    } catch (_) {
+      return;
+    }
     final version = packageInfo.version;
     final lastSeen = SpUtil.getString(AlistConstant.lastSeenVersion) ?? '';
     if (lastSeen == version) return;
@@ -293,7 +298,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _httpCheckAppVersion() async {
-    var packageInfo = await PackageInfo.fromPlatform();
+    PackageInfo packageInfo;
+    try {
+      packageInfo = await PackageInfo.fromPlatform();
+    } catch (_) {
+      return;
+    }
     String version = packageInfo.version;
     String url =
         "https://${Global.configServerHost}/app/version.json?version=$version";

@@ -144,7 +144,11 @@ class _SettingsContainerState extends State<_SettingsContainer>
   }
 
   _initPackageInfo() async {
-    packageInfo = await PackageInfo.fromPlatform();
+    try {
+      packageInfo = await PackageInfo.fromPlatform();
+    } catch (_) {
+      packageInfo = null;
+    }
   }
 
   List<SettingsMenu> _buildSettingsMenuItems(BuildContext context) {
