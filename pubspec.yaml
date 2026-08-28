@@ -76,7 +76,7 @@ dependencies:
   # permission
   permission_handler: ^10.2.0
   # native webview
-  flutter_inappwebview: ^5.8.0
+  flutter_inappwebview: ^6.1.5
   # volume_controller
   volume_controller: ^2.0.7
   # screen_brightness
