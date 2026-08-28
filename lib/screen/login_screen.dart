@@ -9,6 +9,7 @@ import 'package:list_linker/generated/images.dart';
 import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/net/dio_utils.dart';
 import 'package:list_linker/router.dart';
+import 'package:list_linker/util/app_http_overrides.dart';
 import 'package:list_linker/util/constant.dart';
 import 'package:list_linker/util/focus_node_utils.dart';
 import 'package:list_linker/util/global.dart';
@@ -222,14 +223,14 @@ class LoginScreenContainer extends StatelessWidget {
         Checkbox(
           value: loginScreenController.ignoreSSLError.value,
           onChanged: (checked) {
-            loginScreenController.ignoreSSLError.value = checked ?? false;
+            loginScreenController.setIgnoreSSLError(checked ?? false);
           },
         ),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
-            loginScreenController.ignoreSSLError.value =
-                !loginScreenController.ignoreSSLError.value;
+            loginScreenController.setIgnoreSSLError(
+                !loginScreenController.ignoreSSLError.value);
           },
           child: Text(Intl.loginScreen_checkbox_ignoreSSLError.tr),
         ),
@@ -265,6 +266,12 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
   var addressTextFieldIsFocused = false.obs;
 
   var ignoreSSLError = false.obs;
+
+  void setIgnoreSSLError(bool value) {
+    ignoreSSLError.value = value;
+    setAppIgnoreSSLErrors(value);
+    SpUtil.putBool(AlistConstant.ignoreSSLError, value);
+  }
 
   @override
   void onInit() {

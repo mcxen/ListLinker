@@ -1,6 +1,7 @@
 import 'package:list_linker/l10n/alist_translations.dart';
 import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/router.dart';
+import 'package:list_linker/util/app_http_overrides.dart';
 import 'package:list_linker/util/log_utils.dart';
 import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/util/proxy.dart';
@@ -18,11 +19,12 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'database/alist_database_controller.dart';
 import 'generated/color_schemes.g.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   // sp初始化
-  SpUtil.getInstance();
+  await SpUtil.getInstance();
+  configureAppHttpOverrides();
   Log.init();
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return Material(

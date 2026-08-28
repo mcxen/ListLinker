@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:list_linker/net/json_parse_error.dart';
 import 'package:list_linker/net/net_error_handler.dart';
 import 'package:list_linker/net/redirect_exception.dart';
+import 'package:list_linker/util/app_http_overrides.dart';
 import 'package:list_linker/util/constant.dart';
 import 'package:list_linker/util/log_utils.dart';
 import 'package:list_linker/util/named_router.dart';
@@ -36,6 +37,7 @@ void configDio(
   _baseUrl = baseUrl ?? _baseUrl;
   _interceptors = interceptors ?? _interceptors;
   _ignoreSSLError = ignoreSSLError;
+  setAppIgnoreSSLErrors(ignoreSSLError);
 }
 
 typedef NetSuccessCallback<T> = Function(T data);
@@ -152,6 +154,7 @@ class DioUtils {
 
   void configAgain(String baseUrl, bool ignoreSSLError) {
     _baseUrl = baseUrl;
+    setAppIgnoreSSLErrors(ignoreSSLError);
     _dioInit(ignoreSSLError: ignoreSSLError);
   }
 

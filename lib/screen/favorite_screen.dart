@@ -551,7 +551,21 @@ class _FavoriteScreenState extends State<FavoriteScreen>
     var files = await _loadFilesPrepare(
         file.path.substringBeforeLast("/")!, file.path, FileType.image);
     SmartDialog.dismiss();
-    if (files == null) {
+    if (files == null || files.isEmpty) {
+      Get.toNamed(
+        NamedRouter.gallery,
+        arguments: {
+          "files": [
+            PhotoItem(
+              name: file.name,
+              remotePath: file.path,
+              sign: file.sign,
+              provider: file.provider,
+            ),
+          ],
+          "index": 0,
+        },
+      );
       return;
     }
 
