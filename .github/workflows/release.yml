@@ -57,7 +57,7 @@ jobs:
             printf 'storePassword=%s\n' "$KEYSTORE_PASSWORD"
             printf 'keyAlias=%s\n' "$KEY_ALIAS"
             printf 'keyPassword=%s\n' "$KEY_PASSWORD"
-          } >> android/local.properties
+          } > android/key.properties
 
       - name: Build APK
         run: flutter build apk --release

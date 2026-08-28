@@ -22,11 +22,16 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-def releaseKeyAlias = localProperties.getProperty('keyAlias')
-def releaseKeyPassword = localProperties.getProperty('keyPassword')
-def releaseStoreFile = localProperties.getProperty('storeFile')
-def releaseStorePassword = localProperties.getProperty('storePassword')
-def hasStoreFile = releaseStoreFile != null && releaseStoreFile != ''
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader('UTF-8') { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
+def hasStoreFile = keystoreProperties.getProperty('storeFile') != null &&
+    keystoreProperties.getProperty('storeFile') != ''
 
 android {
     namespace 'com.example.listlinker'
@@ -66,10 +71,10 @@ android {
     signingConfigs {
         if (hasStoreFile) {
             release {
-                keyAlias releaseKeyAlias
-                keyPassword releaseKeyPassword
-                storeFile file(releaseStoreFile)
-                storePassword releaseStorePassword
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
             }
         }
     }
