@@ -13,6 +13,7 @@ on:
 
 env:
   FLUTTER_VERSION: "3.47.2"
+  ANDROID_SIGNING_CERT_SHA256: "f22b4082a87e186037fee3ccfafd502a030348ce88c077d70963e27f179066f2"
 
 permissions:
   contents: read
@@ -63,16 +64,49 @@ jobs:
         run: flutter build apk --release
 
       - name: Verify APK signature
+        env:
+          EXPECTED_CERT_SHA256: ${{ env.ANDROID_SIGNING_CERT_SHA256 }}
         run: |
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
-            --verbose --print-certs \
-            build/app/outputs/flutter-apk/app-release.apk
+          set -euo pipefail
+          apk_path=build/app/outputs/flutter-apk/app-release.apk
+          verification_output="$(
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
+              --verbose --print-certs "$apk_path"
+          )"
+          printf '%s\n' "$verification_output"
+          grep -Fq 'Verified using v1 scheme (JAR signing): true' <<< "$verification_output"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "$verification_output"
+          grep -Fq 'Verified using v3 scheme (APK Signature Scheme v3): true' <<< "$verification_output"
+          actual_cert_sha256="$(
+            sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "$verification_output"
+          )"
+          test "$actual_cert_sha256" = "$EXPECTED_CERT_SHA256"
+
+      - name: Prepare Android release assets
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          EXPECTED_CERT_SHA256: ${{ env.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          apk_name="ListLinker-Android-${RELEASE_TAG}.apk"
+          mkdir -p dist/android
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/android/$apk_name"
+          (
+            cd dist/android
+            sha256sum -- "$apk_name" > SHA256SUMS
+          )
+          {
+            printf 'Package: com.example.listlinker\n'
+            printf 'Version: %s\n' "$RELEASE_TAG"
+            printf 'Certificate SHA-256: %s\n' "$EXPECTED_CERT_SHA256"
+            printf 'APK signature schemes: v1, v2, v3\n'
+          } > dist/android/SIGNING-CERTIFICATE.txt
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: listlinker-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: dist/android/*
           if-no-files-found: error
 
   build-macos:
@@ -164,7 +198,7 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            listlinker-android-apk/app-release.apk
+            listlinker-android-apk/*
             listlinker-macos/ListLinker-macOS.zip
             listlinker-windows/listlinker-windows.zip
         env:

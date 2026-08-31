@@ -9,6 +9,7 @@ on:
 
 env:
   FLUTTER_VERSION: "3.47.2"
+  ANDROID_SIGNING_CERT_SHA256: "f22b4082a87e186037fee3ccfafd502a030348ce88c077d70963e27f179066f2"
 
 jobs:
   build:
@@ -95,8 +96,49 @@ jobs:
       - name: Generate database code
         run: flutter packages pub run build_runner build --delete-conflicting-outputs
 
+      - name: Configure Android release signing
+        if: matrix.name == 'android' && github.event_name != 'pull_request'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/listlinker-release.jks"
+          {
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/listlinker-release.jks"
+            printf 'storePassword=%s\n' "$KEYSTORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > android/key.properties
+
       - name: Build ${{ matrix.name }}
         run: ${{ matrix.build-cmd }}
+
+      - name: Verify Android release signature
+        if: matrix.name == 'android' && github.event_name != 'pull_request'
+        env:
+          EXPECTED_CERT_SHA256: ${{ env.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          apk_path=build/app/outputs/flutter-apk/app-release.apk
+          verification_output="$(
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
+              --verbose --print-certs "$apk_path"
+          )"
+          printf '%s\n' "$verification_output"
+          grep -Fq 'Verified using v1 scheme (JAR signing): true' <<< "$verification_output"
+          grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "$verification_output"
+          grep -Fq 'Verified using v3 scheme (APK Signature Scheme v3): true' <<< "$verification_output"
+          actual_cert_sha256="$(
+            sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "$verification_output"
+          )"
+          test "$actual_cert_sha256" = "$EXPECTED_CERT_SHA256"
 
       - name: Package macOS application
         if: matrix.name == 'macos'
@@ -116,6 +158,7 @@ jobs:
           if (-not (Test-Path listlinker-windows.zip)) { exit 1 }
 
       - name: Upload artifact
+        if: matrix.name != 'android' || github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: listlinker-${{ matrix.name }}
