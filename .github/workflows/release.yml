@@ -73,8 +73,13 @@ jobs:
             "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
               --verbose --print-certs "$apk_path"
           )"
+          legacy_verification_output="$(
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
+              --min-sdk-version 23 --verbose --print-certs "$apk_path"
+          )"
           printf '%s\n' "$verification_output"
-          grep -Fq 'Verified using v1 scheme (JAR signing): true' <<< "$verification_output"
+          printf '%s\n' "$legacy_verification_output"
+          grep -Fq 'Verified using v1 scheme (JAR signing): true' <<< "$legacy_verification_output"
           grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "$verification_output"
           grep -Fq 'Verified using v3 scheme (APK Signature Scheme v3): true' <<< "$verification_output"
           actual_cert_sha256="$(
