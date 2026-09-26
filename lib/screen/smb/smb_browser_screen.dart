@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show FontFeature;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:list_linker/generated/images.dart';
@@ -9,6 +10,7 @@ import 'package:list_linker/screen/video_player_screen.dart';
 import 'package:list_linker/util/file_type.dart';
 import 'package:list_linker/util/file_utils.dart';
 import 'package:list_linker/util/named_router.dart';
+import 'package:list_linker/util/number_utils.dart';
 import 'package:list_linker/util/smb/smb_service.dart';
 import 'package:list_linker/util/video_player_util.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
@@ -153,8 +155,10 @@ class _SmbBrowserScreenState extends State<SmbBrowserScreen> {
             alignment: Alignment.centerLeft,
             color: scheme.surfaceContainerHighest.withOpacity(0.25),
             child: Text(
-              '${_visibleFiles.length} ${Intl.fileManager_items.tr} · SMB',
-              style: Theme.of(context).textTheme.bodySmall,
+              '${_visibleFiles.length.humanizedCount()} ${Intl.fileManager_items.tr} · SMB',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ),
         ],
@@ -198,6 +202,8 @@ class _SmbBrowserScreenState extends State<SmbBrowserScreen> {
             height: 34,
             child: TextField(
               controller: _searchController,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
               decoration: InputDecoration(
                 hintText: Intl.fileManager_searchHint.tr,
                 prefixIcon: const Icon(Icons.search_rounded, size: 19),
@@ -253,6 +259,7 @@ class _SmbBrowserScreenState extends State<SmbBrowserScreen> {
       );
     }
     return ListView.separated(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.only(
         bottom:
             (_downloadProgress != null || _uploadProgress != null ? 88 : 16) +
@@ -459,6 +466,7 @@ class _SmbBrowserScreenState extends State<SmbBrowserScreen> {
   }
 
   Future<void> _delete(SmbFile file) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -543,6 +551,7 @@ class _SmbBrowserScreenState extends State<SmbBrowserScreen> {
           ? 0
           : initialValue.length - p.extension(initialValue).length,
     );
+    FocusManager.instance.primaryFocus?.unfocus();
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -550,6 +559,7 @@ class _SmbBrowserScreenState extends State<SmbBrowserScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          textInputAction: TextInputAction.done,
           decoration: InputDecoration(hintText: Intl.fileManager_nameHint.tr),
           onSubmitted: (value) => Navigator.pop(context, value),
         ),

@@ -1,7 +1,8 @@
 import 'package:list_linker/generated/images.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:list_linker/util/widget_utils.dart';
+import 'package:list_linker/widget/spring_bottom_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 /// Shared layout tokens + primitives aligned with ListLinker + Flutter Pro taste.
 class AppUi {
@@ -160,15 +161,23 @@ class AppEmptyState extends StatelessWidget {
     );
 
     if (!expand) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: content,
+      return Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: content,
+        ),
       );
     }
 
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+        padding: EdgeInsets.fromLTRB(
+          28,
+          32,
+          28,
+          WidgetUtils.listBottomInset(context, minimum: 32),
+        ),
         child: content,
       ),
     );
@@ -228,7 +237,7 @@ class AppListTile extends StatelessWidget {
         onTap: onTap == null
             ? null
             : () {
-                HapticFeedback.selectionClick();
+                HapticsHelper.selection();
                 onTap!();
               },
         onLongPress: onLongPress,
@@ -306,7 +315,7 @@ class AppActionCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          HapticFeedback.selectionClick();
+          HapticsHelper.selection();
           onTap();
         },
         child: Padding(
@@ -372,13 +381,10 @@ Future<T?> showAppBottomSheet<T>({
   required BuildContext context,
   required List<Widget> children,
 }) {
-  return showModalBottomSheet<T>(
+  FocusManager.instance.primaryFocus?.unfocus();
+  HapticsHelper.light();
+  return showSpringBottomSheet<T>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-    ),
     builder: (ctx) {
       return SafeArea(
         top: false,
@@ -416,6 +422,7 @@ class AppFormField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction = TextInputAction.next,
     this.enabled = true,
+    this.onSubmitted,
   });
 
   final TextEditingController controller;
@@ -425,6 +432,7 @@ class AppFormField extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction textInputAction;
   final bool enabled;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -436,6 +444,7 @@ class AppFormField extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
         decoration: AppUi.fieldDecoration(
           context,
           label: label,

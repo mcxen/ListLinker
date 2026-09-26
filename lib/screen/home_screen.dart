@@ -13,11 +13,11 @@ import 'package:list_linker/screen/settings_screen.dart';
 import 'package:list_linker/screen/smb/smb_workspace_screen.dart';
 import 'package:list_linker/util/constant.dart';
 import 'package:list_linker/util/global.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:list_linker/widget/bottom_navigation_bar.dart';
 import 'package:list_linker/widget/update_dialog.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -31,17 +31,17 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-enum _HomeDestination {
-  cloud,
-  local,
-  smb,
-  recents,
-  favorites,
-  settings,
-}
+enum _HomeDestination { cloud, local, smb, recents, favorites, settings }
 
 class _HomeScreenState extends State<HomeScreen> {
   static const double _desktopNavigationBreakpoint = 760;
+  static const double _desktopPanelRadius = 18;
+  static const double _desktopPanelGap = 12;
+  static const double _desktopMenuExpandedWidth = 224;
+  static const double _desktopMenuCollapsedWidth = 72;
+  static const Duration _desktopMenuAnimationDuration = Duration(
+    milliseconds: 240,
+  );
   static const _mobileDestinations = [
     _HomeDestination.cloud,
     _HomeDestination.recents,
@@ -56,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   _HomeDestination _currentDestination = _HomeDestination.cloud;
+  bool _desktopMenuCollapsed = false;
   late final bool _offlineMode;
 
   @override
@@ -71,12 +72,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _maybeShowWhatsNew();
   }
 
-  void _onDestinationSelected(_HomeDestination destination) {
-    HapticFeedback.selectionClick();
+  void _onDestinationSelected(
+    _HomeDestination destination, {
+    bool emitHaptic = true,
+  }) {
+    if (emitHaptic) HapticsHelper.selection();
     if (destination == _currentDestination) {
       if (destination == _HomeDestination.cloud) {
-        Get.until((route) => route.isFirst,
-            id: AlistRouter.fileListRouterStackId);
+        Get.until(
+          (route) => route.isFirst,
+          id: AlistRouter.fileListRouterStackId,
+        );
       } else {
         final primary = PrimaryScrollController.maybeOf(context);
         if (primary != null && primary.hasClients) {
@@ -136,9 +142,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useDesktopNavigation = _offlineMode ||
+        final useDesktopNavigation =
+            _offlineMode ||
             constraints.maxWidth >= _desktopNavigationBreakpoint;
-        final effectiveDestination = useDesktopNavigation ||
+        final effectiveDestination =
+            useDesktopNavigation ||
                 _mobileDestinations.contains(_currentDestination)
             ? _currentDestination
             : _HomeDestination.cloud;
@@ -155,30 +163,50 @@ class _HomeScreenState extends State<HomeScreen> {
           const FavoriteScreen(),
           const SettingsScreen(),
         ];
-        final content = IndexedStack(
-          index: effectiveDestination.index,
-          children: pages,
+        final destinationTitle = switch (effectiveDestination) {
+          _HomeDestination.cloud => Intl.screenName_home.tr,
+          _HomeDestination.local => Intl.screenName_localFiles.tr,
+          _HomeDestination.smb => Intl.screenName_smb.tr,
+          _HomeDestination.recents => Intl.screenName_recents.tr,
+          _HomeDestination.favorites => Intl.screenName_favorite.tr,
+          _HomeDestination.settings => Intl.screenName_settings.tr,
+        };
+        final content = Title(
+          title: '$destinationTitle · ${Intl.appName.tr}',
+          color: Theme.of(context).colorScheme.surface,
+          child: IndexedStack(
+            index: effectiveDestination.index,
+            children: [
+              for (var index = 0; index < pages.length; index++)
+                TickerMode(
+                  enabled: index == effectiveDestination.index,
+                  child: pages[index],
+                ),
+            ],
+          ),
         );
 
         return Scaffold(
+          backgroundColor: useDesktopNavigation
+              ? Theme.of(context).colorScheme.surfaceContainerLow
+              : null,
           body: useDesktopNavigation
-              ? Row(
-                  children: [
-                    _buildDesktopMenu(context),
-                    VerticalDivider(
-                      width: 1,
-                      thickness: 1,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withOpacity(0.55),
+              ? SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(_desktopPanelGap),
+                    child: Row(
+                      children: [
+                        _buildDesktopMenu(context),
+                        const SizedBox(width: _desktopPanelGap),
+                        Expanded(child: _DesktopPanel(child: content)),
+                      ],
                     ),
-                    Expanded(child: content),
-                  ],
+                  ),
                 )
               : content,
-          bottomNavigationBar:
-              useDesktopNavigation ? null : _buildBottomNavigationBar(),
+          bottomNavigationBar: useDesktopNavigation
+              ? null
+              : _buildBottomNavigationBar(),
         );
       },
     );
@@ -186,28 +214,90 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildDesktopMenu(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final destinations =
-        _offlineMode ? _offlineDestinations : _HomeDestination.values;
+    final destinations = _offlineMode
+        ? _offlineDestinations
+        : _HomeDestination.values;
+    final animationDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : _desktopMenuAnimationDuration;
 
-    return SizedBox(
-      width: 224,
+    return AnimatedContainer(
+      duration: animationDuration,
+      curve: Curves.easeInOutCubic,
+      width: _desktopMenuCollapsed
+          ? _desktopMenuCollapsedWidth
+          : _desktopMenuExpandedWidth,
       child: Material(
-        color: scheme.surfaceContainerHighest.withOpacity(0.32),
+        color: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_desktopPanelRadius),
+          side: BorderSide(color: scheme.outlineVariant.withOpacity(0.5)),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: NavigationRail(
-          extended: true,
-          minExtendedWidth: 224,
+          backgroundColor: Colors.transparent,
+          extended: !_desktopMenuCollapsed,
+          minWidth: _desktopMenuCollapsedWidth,
+          minExtendedWidth: _desktopMenuExpandedWidth,
           selectedIndex: destinations.indexOf(_currentDestination),
           groupAlignment: -1,
           useIndicator: true,
           leading: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 16, 22),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                Intl.appName.tr,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 22),
+            child: SizedBox(
+              height: 40,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        duration: animationDuration,
+                        curve: Curves.easeOut,
+                        opacity: _desktopMenuCollapsed ? 0 : 1,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 40),
+                            child: Text(
+                              Intl.appName.tr,
+                              maxLines: 1,
+                              overflow: TextOverflow.fade,
+                              softWrap: false,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
+                  ),
+                  Positioned.fill(
+                    child: AnimatedAlign(
+                      duration: animationDuration,
+                      curve: Curves.easeInOutCubic,
+                      alignment: _desktopMenuCollapsed
+                          ? Alignment.center
+                          : Alignment.centerRight,
+                      child: IconButton(
+                        tooltip: _desktopMenuCollapsed
+                            ? Intl.navigation_expand.tr
+                            : Intl.navigation_collapse.tr,
+                        onPressed: () {
+                          HapticsHelper.selection();
+                          setState(() {
+                            _desktopMenuCollapsed = !_desktopMenuCollapsed;
+                          });
+                        },
+                        icon: AnimatedRotation(
+                          duration: animationDuration,
+                          curve: Curves.easeInOutCubic,
+                          turns: _desktopMenuCollapsed ? 0.5 : 0,
+                          child: const Icon(Icons.chevron_left_rounded),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -224,43 +314,43 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     return switch (destination) {
       _HomeDestination.cloud => NavigationRailDestination(
-          icon: const Icon(Icons.cloud_outlined),
-          selectedIcon: const Icon(Icons.cloud_rounded),
-          label: Text(Intl.screenName_home.tr),
-        ),
+        icon: const Icon(Icons.cloud_outlined),
+        selectedIcon: const Icon(Icons.cloud_rounded),
+        label: Text(Intl.screenName_home.tr),
+      ),
       _HomeDestination.local => NavigationRailDestination(
-          icon: const Icon(Icons.folder_outlined),
-          selectedIcon: const Icon(Icons.folder_rounded),
-          label: Text(Intl.screenName_localFiles.tr),
-        ),
+        icon: const Icon(Icons.folder_outlined),
+        selectedIcon: const Icon(Icons.folder_rounded),
+        label: Text(Intl.screenName_localFiles.tr),
+      ),
       _HomeDestination.smb => NavigationRailDestination(
-          icon: const Icon(Icons.dns_outlined),
-          selectedIcon: const Icon(Icons.dns_rounded),
-          label: Text(Intl.screenName_smb.tr),
-        ),
+        icon: const Icon(Icons.dns_outlined),
+        selectedIcon: const Icon(Icons.dns_rounded),
+        label: Text(Intl.screenName_smb.tr),
+      ),
       _HomeDestination.recents => NavigationRailDestination(
-          icon: const Icon(Icons.history_outlined),
-          selectedIcon: const Icon(Icons.history_rounded),
-          label: Text(Intl.screenName_recents.tr),
-        ),
+        icon: const Icon(Icons.history_outlined),
+        selectedIcon: const Icon(Icons.history_rounded),
+        label: Text(Intl.screenName_recents.tr),
+      ),
       _HomeDestination.favorites => NavigationRailDestination(
-          icon: const Icon(Icons.star_outline_rounded),
-          selectedIcon: const Icon(Icons.star_rounded),
-          label: Text(Intl.screenName_favorite.tr),
-        ),
+        icon: const Icon(Icons.star_outline_rounded),
+        selectedIcon: const Icon(Icons.star_rounded),
+        label: Text(Intl.screenName_favorite.tr),
+      ),
       _HomeDestination.settings => NavigationRailDestination(
-          icon: const Icon(Icons.settings_outlined),
-          selectedIcon: const Icon(Icons.settings_rounded),
-          label: Text(Intl.screenName_settings.tr),
-        ),
+        icon: const Icon(Icons.settings_outlined),
+        selectedIcon: const Icon(Icons.settings_rounded),
+        label: Text(Intl.screenName_settings.tr),
+      ),
     };
   }
 
   Widget _buildBottomNavigationBar() {
     final effectiveDestination =
         _mobileDestinations.contains(_currentDestination)
-            ? _currentDestination
-            : _HomeDestination.cloud;
+        ? _currentDestination
+        : _HomeDestination.cloud;
     return AlistBottomNavigationBar(
       items: <BottomNavigationBarItem>[
         BottomNavigationBarItem(
@@ -278,20 +368,23 @@ class _HomeScreenState extends State<HomeScreen> {
         BottomNavigationBarItem(
           icon: const Icon(Icons.settings_rounded),
           label: Intl.screenName_settings.tr,
-        )
+        ),
       ],
       currentIndex: _mobileDestinations.indexOf(effectiveDestination),
       type: BottomNavigationBarType.fixed,
       onTap: (index) => _onDestinationSelected(_mobileDestinations[index]),
       onLongPress: (int idx) {
+        HapticsHelper.medium();
         LogUtil.d("onDoubleTap: $idx");
         final destination = _mobileDestinations[idx];
         if (destination == _HomeDestination.cloud &&
             _currentDestination == _HomeDestination.cloud) {
-          Get.until((route) => route.isFirst,
-              id: AlistRouter.fileListRouterStackId);
+          Get.until(
+            (route) => route.isFirst,
+            id: AlistRouter.fileListRouterStackId,
+          );
         } else {
-          _onDestinationSelected(destination);
+          _onDestinationSelected(destination, emitHaptic: false);
         }
       },
     );
@@ -307,21 +400,24 @@ class _HomeScreenState extends State<HomeScreen> {
     String version = packageInfo.version;
     String url =
         "https://${Global.configServerHost}/app/version.json?version=$version";
-    DioUtils.instance.requestForString(Method.get, url,
-        onSuccess: (string) async {
-      if (string == null || string.isEmpty) return;
-      Map<String, dynamic> json = jsonDecode(string);
-      var appVersionResp = AppVersionResp.fromJson(json);
-      String respVersion;
-      if (Platform.isIOS) {
-        respVersion = appVersionResp.ios.version;
-      } else {
-        respVersion = appVersionResp.android.version;
-      }
-      if (_version2Int(respVersion) > _version2Int(version)) {
-        _showUpdateDialog(appVersionResp);
-      }
-    });
+    DioUtils.instance.requestForString(
+      Method.get,
+      url,
+      onSuccess: (string) async {
+        if (string == null || string.isEmpty) return;
+        Map<String, dynamic> json = jsonDecode(string);
+        var appVersionResp = AppVersionResp.fromJson(json);
+        String respVersion;
+        if (Platform.isIOS) {
+          respVersion = appVersionResp.ios.version;
+        } else {
+          respVersion = appVersionResp.android.version;
+        }
+        if (_version2Int(respVersion) > _version2Int(version)) {
+          _showUpdateDialog(appVersionResp);
+        }
+      },
+    );
   }
 
   int _version2Int(String version) {
@@ -334,8 +430,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showUpdateDialog(AppVersionResp appVersion) {
-    String version =
-        Platform.isIOS ? appVersion.ios.version : appVersion.android.version;
+    String version = Platform.isIOS
+        ? appVersion.ios.version
+        : appVersion.android.version;
     String? ignoreVersion = SpUtil.getString(AlistConstant.ignoreAppVersion);
     if (version == ignoreVersion) {
       return;
@@ -343,6 +440,28 @@ class _HomeScreenState extends State<HomeScreen> {
     SmartDialog.show(
       clickMaskDismiss: false,
       builder: (_) => UpdateDialog(appVersion: appVersion),
+    );
+  }
+}
+
+class _DesktopPanel extends StatelessWidget {
+  const _DesktopPanel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          _HomeScreenState._desktopPanelRadius,
+        ),
+        side: BorderSide(color: scheme.outlineVariant.withOpacity(0.5)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
     );
   }
 }

@@ -13,17 +13,18 @@ import 'package:list_linker/util/app_http_overrides.dart';
 import 'package:list_linker/util/constant.dart';
 import 'package:list_linker/util/focus_node_utils.dart';
 import 'package:list_linker/util/global.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:list_linker/util/keyboard_utils.dart';
 import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/util/user_controller.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:dio/dio.dart';
 import 'package:floor/floor.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
@@ -50,6 +51,7 @@ class LoginScreen extends StatelessWidget {
             },
             behavior: HitTestBehavior.translucent,
             child: SingleChildScrollView(
+              padding: WidgetUtils.listViewPadding(context),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               child: LoginScreenContainer(),
             ),
@@ -161,6 +163,7 @@ class LoginScreenContainer extends StatelessWidget {
                     controller: loginScreenController.passwordController,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) {
+                      HapticsHelper.light();
                       loginScreenController.twofaController.text = "";
                       KeyboardUtil.hideKeyboard(context);
                       loginScreenController.onLoginButtonClick(context);
@@ -171,7 +174,7 @@ class LoginScreenContainer extends StatelessWidget {
                   FilledButton(
                     onPressed: () {
                       // clear the last 2fa code typed.
-                      HapticFeedback.lightImpact();
+                      HapticsHelper.light();
                       loginScreenController.twofaController.text = "";
                       KeyboardUtil.hideKeyboard(context);
                       loginScreenController.onLoginButtonClick(context);
@@ -186,6 +189,7 @@ class LoginScreenContainer extends StatelessWidget {
                       backgroundColor: Theme.of(context).colorScheme.secondary,
                     ),
                     onPressed: () {
+                      HapticsHelper.light();
                       final address =
                           loginScreenController.addressController.text.trim();
                       if (address.isEmpty) {
@@ -229,8 +233,8 @@ class LoginScreenContainer extends StatelessWidget {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
-            loginScreenController.setIgnoreSSLError(
-                !loginScreenController.ignoreSSLError.value);
+            loginScreenController
+                .setIgnoreSSLError(!loginScreenController.ignoreSSLError.value);
           },
           child: Text(Intl.loginScreen_checkbox_ignoreSSLError.tr),
         ),
@@ -268,6 +272,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
   var ignoreSSLError = false.obs;
 
   void setIgnoreSSLError(bool value) {
+    HapticsHelper.soft();
     ignoreSSLError.value = value;
     setAppIgnoreSSLErrors(value);
     SpUtil.putBool(AlistConstant.ignoreSSLError, value);
@@ -502,6 +507,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
   }
 
   void _tryEntryDefaultServer(BuildContext context) {
+    FocusManager.instance.primaryFocus?.unfocus();
     SmartDialog.show(builder: (_) {
       return AlertDialog(
         title: Text(Intl.guestModeDialog_title.tr),
@@ -597,6 +603,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
   }
 
   _showAgreementDialog() {
+    FocusManager.instance.primaryFocus?.unfocus();
     SmartDialog.show(
       clickMaskDismiss: false,
       backDismiss: false,
@@ -660,6 +667,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
   }
 
   void _showType2FACodeDialog(BuildContext context) {
+    FocusManager.instance.primaryFocus?.unfocus();
     FocusNode focusNode = FocusNode().autoFocus();
     SmartDialog.show(
         clickMaskDismiss: false,
@@ -670,6 +678,11 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
               controller: twofaController,
               focusNode: focusNode,
               autofocus: true,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                SmartDialog.dismiss();
+                _onConfirm(context);
+              },
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 isCollapsed: true,
@@ -723,6 +736,7 @@ class LoginScreenController extends GetxController with WidgetsBindingObserver {
   }
 
   void _showDavTipsDialog({bool isLogin = false}) {
+    FocusManager.instance.primaryFocus?.unfocus();
     SmartDialog.show(builder: (context) {
       return AlertDialog(
         title: Text(Intl.davTipsDialog_title.tr),

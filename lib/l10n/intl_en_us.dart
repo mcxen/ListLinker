@@ -1,5 +1,7 @@
 const translationsEnUS = {
   "appName": "ALClient",
+  "navigation_collapse": "Collapse sidebar",
+  "navigation_expand": "Expand sidebar",
   "screenName_login": "Sign in",
   "screenName_fileListRoot": "Root",
   "screenName_settings": "Settings",

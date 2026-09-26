@@ -38,6 +38,10 @@ class AlistConstant {
 
   /// One-time flag: slidable swipe hint already shown on file list.
   static const String slidableHintShown = 'slidableHintShown';
+  static const String recentsSlidableHintShown = 'recentsSlidableHintShown';
+  static const String favoritesSlidableHintShown = 'favoritesSlidableHintShown';
+  static const String downloadsSlidableHintShown = 'downloadsSlidableHintShown';
+  static const String accountsSlidableHintShown = 'accountsSlidableHintShown';
 
   /// Last app version for which the in-app changelog was shown.
   static const String lastSeenVersion = 'lastSeenVersion';

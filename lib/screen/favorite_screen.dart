@@ -24,8 +24,10 @@ import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/util/video_player_util.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/app_slidable.dart';
 import 'package:list_linker/widget/file_details_dialog.dart';
 import 'package:list_linker/widget/file_list_item_view.dart';
+import 'package:list_linker/widget/spring_bottom_sheet.dart';
 import 'package:dio/dio.dart';
 import 'package:floor/floor.dart';
 import 'package:flustars/flustars.dart';
@@ -98,7 +100,7 @@ class _FavoriteScreenState extends State<FavoriteScreen>
         padding: WidgetUtils.listViewPadding(context),
         itemBuilder: (context, item) {
           var record = _list[item];
-          return _fileListItemView(context, record);
+          return _fileListItemView(context, record, item);
         },
         separatorBuilder: (context, item) => const Divider(),
         itemCount: _list.length,
@@ -106,10 +108,12 @@ class _FavoriteScreenState extends State<FavoriteScreen>
     );
   }
 
-  Widget _fileListItemView(BuildContext context, Favorite record) {
+  Widget _fileListItemView(BuildContext context, Favorite record, int index) {
     var createTime = DateTime.fromMillisecondsSinceEpoch(record.createTime);
-    return Slidable(
+    return AppSlidable(
       key: Key(record.path),
+      hintPreferenceKey:
+          index == 0 ? AlistConstant.favoritesSlidableHintShown : null,
       endActionPane: ActionPane(
         motion: const DrawerMotion(),
         children: [
@@ -255,7 +259,7 @@ class _FavoriteScreenState extends State<FavoriteScreen>
 
   _showDetailsDialog(BuildContext context, Favorite record) {
     var modified = DateTime.fromMillisecondsSinceEpoch(record.modified);
-    showModalBottomSheet(
+    showSpringBottomSheet<void>(
       context: context,
       builder: (context) => FileDetailsDialog(
         name: record.name,
@@ -270,7 +274,7 @@ class _FavoriteScreenState extends State<FavoriteScreen>
 
   _showBottomMenuDialog(BuildContext context, Favorite record) {
     var modified = DateTime.fromMillisecondsSinceEpoch(record.modified);
-    showModalBottomSheet(
+    showSpringBottomSheet<void>(
         context: context,
         builder: (context) {
           return Padding(

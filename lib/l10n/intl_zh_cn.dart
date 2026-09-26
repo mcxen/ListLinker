@@ -1,5 +1,7 @@
 const translationsZhCN = {
   "appName": "ALClient",
+  "navigation_collapse": "收起侧边栏",
+  "navigation_expand": "展开侧边栏",
   "screenName_login": "登录",
   "screenName_fileListRoot": "根目录",
   "screenName_settings": "设置",

@@ -1,4 +1,7 @@
+import 'dart:ui' show FontFeature;
+
 import 'package:list_linker/l10n/intl_keys.dart';
+import 'package:list_linker/util/number_utils.dart';
 import 'package:list_linker/util/smb/smb_lan_scanner.dart';
 import 'package:list_linker/util/smb/smb_service.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
@@ -114,11 +117,12 @@ class _SmbScanScreenState extends State<SmbScanScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '$_scanned / $_total',
+                    '${_scanned.humanizedCount()} / ${_total.humanizedCount()}',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: AppUi.muted(context),
-                        ),
+                      color: AppUi.muted(context),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ],
               ),
@@ -201,6 +205,7 @@ class _SmbScanScreenState extends State<SmbScanScreen> {
           content: SizedBox(
             width: 360,
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -237,6 +242,7 @@ class _SmbScanScreenState extends State<SmbScanScreen> {
                     label: Intl.smb_label_password.tr,
                     obscureText: true,
                     textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => Navigator.pop(ctx, true),
                   ),
                 ],
               ),

@@ -12,8 +12,10 @@ import 'package:list_linker/util/file_password_helper.dart';
 import 'package:list_linker/util/file_utils.dart';
 import 'package:list_linker/util/focus_node_utils.dart';
 import 'package:list_linker/util/named_router.dart';
+import 'package:list_linker/util/number_utils.dart';
 import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/util/user_controller.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_will_pop_scope.dart';
 import 'package:list_linker/widget/file_list_item_view.dart';
 import 'package:dio/dio.dart';
@@ -62,12 +64,27 @@ class FileCopyMoveDialog extends StatelessWidget {
               path = "/";
             }
             final FileCopyMoveController controller = Get.put(
-              FileCopyMoveController(originalFolder, names, isCopy, path),
+              FileCopyMoveController(
+                originalFolder,
+                names,
+                isCopy,
+                path,
+                onCompleted: (result) {
+                  Navigator.of(context).pop(result);
+                },
+              ),
               tag: path,
             );
 
             return GetPageRoute(
-              page: () => _buildFileListColumn(context, controller, path!),
+              page: () => Builder(
+                builder: (nestedContext) => _buildFileListColumn(
+                  sheetContext: context,
+                  nestedContext: nestedContext,
+                  controller: controller,
+                  path: path!,
+                ),
+              ),
             );
           },
         ),
@@ -75,14 +92,21 @@ class FileCopyMoveDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildFileListColumn(
-      BuildContext context, FileCopyMoveController controller, String path) {
+  Widget _buildFileListColumn({
+    required BuildContext sheetContext,
+    required BuildContext nestedContext,
+    required FileCopyMoveController controller,
+    required String path,
+  }) {
     String name = "";
     if (path == "/") {
       name = Intl.screenName_fileListRoot.tr;
     } else {
       name = path.substringAfterLast("/")!;
     }
+
+    final folderNavigator = Navigator.of(nestedContext);
+    final canPopFolder = folderNavigator.canPop();
 
     return Container(
       decoration: BoxDecoration(
@@ -96,24 +120,17 @@ class FileCopyMoveDialog extends StatelessWidget {
           children: [
             AppBar(
               backgroundColor: Colors.transparent,
-              leading: BackButton(
-                onPressed: () {
-                  if (_key?.currentState != null &&
-                      _key?.currentState?.canPop() == true) {
-                    _key?.currentState?.pop();
-                  } else {
-                    Get.back();
-                  }
-                },
-              ),
+              automaticallyImplyLeading: false,
+              leading: canPopFolder
+                  ? BackButton(onPressed: folderNavigator.pop)
+                  : null,
               title: Text(name),
               actions: [
-                TextButton(
-                  onPressed: () => Get.back(),
-                  child: Text(
-                    Intl.fileCopyMoveDialog_cancel.tr,
-                    style: TextStyle(fontSize: 16, color: Get.iconColor),
-                  ),
+                IconButton(
+                  tooltip:
+                      MaterialLocalizations.of(sheetContext).closeButtonTooltip,
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  icon: const Icon(Icons.close_rounded),
                 ),
               ],
             ),
@@ -128,7 +145,7 @@ class FileCopyMoveDialog extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: Obx(() => _buildFolderList(controller)),
+              child: Obx(() => _buildFolderList(nestedContext, controller)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -166,7 +183,7 @@ class FileCopyMoveDialog extends StatelessWidget {
                               controller.httpCopyMove();
                             },
                       child: Text(
-                          '${isCopy ? Intl.fileCopyMoveDialog_copy.tr : Intl.fileCopyMoveDialog_move.tr}(${controller.names.length})'),
+                          '${isCopy ? Intl.fileCopyMoveDialog_copy.tr : Intl.fileCopyMoveDialog_move.tr}(${controller.names.length.humanizedCount()})'),
                     ),
                   ),
                 ],
@@ -178,11 +195,15 @@ class FileCopyMoveDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildFolderList(FileCopyMoveController controller) {
+  Widget _buildFolderList(
+    BuildContext context,
+    FileCopyMoveController controller,
+  ) {
     return RefreshIndicator(
       key: controller.refreshIndicatorKey,
       onRefresh: () => controller.loadFiles(),
       child: ListView.separated(
+        padding: WidgetUtils.listViewPadding(context),
         itemBuilder: (context, index) {
           final FileListRespContent file = controller.files[index];
           DateTime? modifyTime = file.parseModifiedTime();
@@ -220,13 +241,15 @@ class FileCopyMoveController extends GetxController {
     this.originalFolder,
     this.names,
     this.isCopy,
-    this.path,
-  );
+    this.path, {
+    required this.onCompleted,
+  });
 
   final String path;
   final String originalFolder;
   final List<String> names;
   final bool isCopy;
+  final ValueChanged<Map<String, bool>> onCompleted;
 
   final GlobalKey<RefreshIndicatorState> refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
@@ -423,7 +446,7 @@ class FileCopyMoveController extends GetxController {
       } else {
         SmartDialog.showToast(Intl.fileCopyMoveDialog_moveSuccess.tr);
       }
-      Get.back(result: {"result": true});
+      onCompleted({"result": true});
     }, onError: (code, msg) {
       SmartDialog.showToast(msg);
       SmartDialog.dismiss();

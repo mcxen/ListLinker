@@ -23,6 +23,7 @@ import 'package:list_linker/util/video_player_util.dart';
 import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:list_linker/widget/file_list_item_view.dart';
+import 'package:list_linker/widget/progressive_fade.dart';
 import 'package:dio/dio.dart';
 import 'package:floor/floor.dart';
 import 'package:flutter/material.dart';
@@ -75,6 +76,9 @@ class FileSearchScreen extends StatelessWidget {
                             child: TextField(
                           focusNode: controller.focusNode,
                           controller: controller.textEditingController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (_) =>
+                              FocusManager.instance.primaryFocus?.unfocus(),
                           onChanged: (text) {
                             controller.onSearchTextChange(text);
                           },
@@ -104,7 +108,11 @@ class FileSearchScreen extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(child: _buildList(context, controller)),
+          Expanded(
+            child: ProgressiveFade(
+              child: _buildList(context, controller),
+            ),
+          ),
         ],
       ),
     );
@@ -112,7 +120,8 @@ class FileSearchScreen extends StatelessWidget {
 
   Obx _buildList(BuildContext context, FileSearchController controller) {
     return Obx(() => ListView.separated(
-      padding: WidgetUtils.listViewPadding(context),
+        padding: WidgetUtils.listViewPadding(context),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         itemBuilder: (context, index) {
           var item = controller.list[index];
           var isDir = item.isDir ?? false;

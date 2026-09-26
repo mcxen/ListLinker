@@ -28,6 +28,7 @@ class PlayerSelectorDialog extends StatelessWidget {
           itemBuilder: (context, index) {
             var info = players[index];
             return GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 onPlayerClick(info);
               },

@@ -1,99 +1,119 @@
-# Design findings (selected for implementation)
+**1. 避免系统导航栏遮挡列表底部**
 
-Selected for mobile/Android-first UX work on ListLinker. Web-only items deferred.
-
-**1. Show what's new after an update**
-
-after an update, users open the app and nothing tells them what's new. The bug you fixed and the feature they asked for go unnoticed. Show them as a list on first open after an update, and the user who reported that bug or asked for that feature knows you listened.
-
-**Link:** https://flutterpro.design/details/md/in-app-changelog
-
-**2. Don't let the system navigation bar cover the bottom of scrollable lists**
-
-the last item of scrollable lists gets obscured by the system navigation bar. Leave space as tall as that bar at the end of the list so the last item has a breathing room against the bar.
+列表末项需要根据设备安全区域动态增加底部留白。
 
 **Link:** https://flutterpro.design/details/md/safe-area-replacement
 
-**3. Match text selection to your app's colors**
+**2. 让横向列表看起来可以滚动**
 
-`MaterialApp` applies default tinted colors for text selection in inputs. Match them to your brand colors instead.
+在横向内容边缘加入渐隐提示，避免用户不知道还有更多内容。
 
-**Link:** https://flutterpro.design/details/md/selection-color
+**Link:** https://flutterpro.design/details/md/shader-mask
 
-**4. Load network images smoothly**
+**3. 平滑加载网络图片**
 
-images in Flutter load with no transition, no placeholder and no failure state. They just pop in. Make it calmer: Show a plain grey box until each picture is ready and fade it in. If fails show a subtle broken image icon, never a technical message.
+加载期间显示占位，完成后淡入，失败时显示友好的错误状态。
 
 **Link:** https://flutterpro.design/details/md/smooth-image-loading
 
-**5. Preload images and icons so they don't pop in**
+**4. 预加载图片和图标**
 
-Flutter loads images and icons into memory when a widget first asks for them, and decoding takes time. So they are painted a few frames late. Precache them during splash view so they are ready when painted.
+启动阶段预加载常用资源，避免首次显示时晚几帧出现。
 
 **Link:** https://flutterpro.design/details/md/precache-icons
 
-**6. Teach users swiping an item right and left for actions**
+**5. 提示用户列表项支持滑动操作**
 
-users who don't have muscle memory to look for actions behind items by swiping left and right, never find out those actions exist. Programmatically open and close those actions for the first time user opens that page to teach them the gesture.
+首次进入相关页面时，自动短暂展示滑动操作。
 
 **Link:** https://flutterpro.design/details/md/flutter-slidable-controller
 
-**7. Never show "null" on screen**
+**6. 按用户地区格式化数字**
 
-when a string field comes back `null` or empty from the API and gets displayed directly, the user sees the word "null" or a blank spot on screen. A bad experience, and something they should never see. Instead, gate those values to show "-" or "N/A".
+计数、金额和较大数字不应直接显示原始数值。
 
-**Link:** https://flutterpro.design/details/md/never-show-null
+**Link:** https://flutterpro.design/details/md/format-numbers-for-humans
 
-**9. Add haptic feedback to key moments**
+**7. Flutter Web 启动时显示加载状态**
 
-the app feels flat when taps and results happen in silence. A subtle haptic vibration on a tab switch, a successful submit or an error makes the app feel responsive in the hand.
+避免网页加载期间只显示空白页面。
+
+**Link:** https://flutterpro.design/details/md/flutter-web-loading-progress
+
+**8. 为关键操作补充触觉反馈**
+
+切换、提交成功、错误和开关操作应提供轻微振动反馈。
 
 **Link:** https://flutterpro.design/details/md/haptic-feedback
 
-**10. Use tabular figures for changing numbers**
+**9. 为动态数字使用等宽数字**
 
-digits have different widths in most fonts, so a timer or counter jumps around as it changes. Tabular figures make every digit the same width: numbers stay still and line up.
+计时器、进度和计数变化时不应左右跳动。
 
 **Link:** https://flutterpro.design/details/md/tabular-figures
 
-**12. Dismiss the keyboard when the user scrolls**
+**10. 为 Web 链接提供分享预览卡片**
 
-the user finishes typing and scrolls to see the rest, but the keyboard stays covering half the screen. Scrolling means they're done with the field, so close it for them.
+补齐标题、描述、预览图和社交平台元信息。
+
+**Link:** https://flutterpro.design/details/md/flutter-web-og-image
+
+**11. 滚动表单时收起键盘**
+
+用户开始滚动后，键盘不应继续遮挡内容。
 
 **Link:** https://flutterpro.design/details/md/dismiss-keyboard-on-scroll
 
-**13. Scroll to top when the current bottom nav item is tapped again**
+**12. Web 和桌面端不要使用移动端页面转场**
 
-tapping the bottom nav bar item you're already on should scroll that page to the top. It's muscle memory for native app users, so they'll expect it from your apps too.
+桌面端页面切换应直接、克制，不使用手机式滑入动画。
 
-**Link:** https://flutterpro.design/details/md/bottom-nav-reselect
+**Link:** https://flutterpro.design/details/md/web-page-transitions
 
-**14. Show the app version in settings**
+**13. 扩大可点击区域**
 
-when a user reports a bug, the first question is which version they're on, and the app has no place to answer it.
-
-**Link:** https://flutterpro.design/details/md/show-app-version
-
-**16. Show scrollbars on vertical scrollables**
-
-a scrollbar shows the user where they are in the list and how much is left.
-
-**Link:** https://flutterpro.design/details/md/scrollbars
-
-**17. Make the whole GestureDetector area tappable**
-
-by default `GestureDetector` only takes taps on what its child paints, so the padding and the gaps between an icon and a text do nothing. The user taps the row and misses. The whole box should take the tap.
+包含留白的整行或整块区域都应响应点击。
 
 **Link:** https://flutterpro.design/details/md/gesture-detector-hit-area
 
-**19. Show a friendly view when a widget breaks**
+**14. 按用户地区格式化日期**
 
-when a widget fails to build, users see an empty grey box in release. Show a friendly "Something went wrong" in the app's own colors instead.
+避免直接显示原始时间字符串或手工拼接日期。
 
-**Link:** https://flutterpro.design/details/md/friendly-error-view
+**Link:** https://flutterpro.design/details/md/format-date-times
 
-**20. Give every text field the right keyboard action**
+**15. 无标题栏页面滚动时渐隐顶部内容**
 
-users should be able to fill a form and submit it with the keyboard's action key alone: it moves them to the next field, and on the last one, submits. No tapping each field by hand.
+避免滚动内容与状态栏中的时间、电量等信息碰撞。
+
+**Link:** https://flutterpro.design/details/md/progressive-fade
+
+**16. 根据当前页面更新浏览器标签标题**
+
+不同页面应在浏览器标签、历史记录和书签中显示对应名称。
+
+**Link:** https://flutterpro.design/details/md/browser-tab-title
+
+**17. 打开弹窗前取消输入框焦点**
+
+避免弹窗关闭后键盘意外重新出现。
+
+**Link:** https://flutterpro.design/details/md/unfocus-before-modal
+
+**18. 为输入框设置正确的键盘操作**
+
+多字段表单应支持“下一项”，最后一项应能直接完成或提交。
 
 **Link:** https://flutterpro.design/details/md/text-input-action
+
+**19. 让底部弹层平滑且可拖动**
+
+小型底部弹层需要更自然的拖拽和关闭体验。
+
+**Link:** https://flutterpro.design/details/md/smooth-draggable-bottom-sheets
+
+**20. 为全屏弹层使用现代样式**
+
+全屏弹层应支持从顶部下拉关闭，并使用更自然的过渡效果。
+
+**Link:** https://flutterpro.design/details/md/adaptive-sheet-route

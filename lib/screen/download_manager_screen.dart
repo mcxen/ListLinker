@@ -17,6 +17,7 @@ import 'package:list_linker/util/download/download_manager.dart';
 import 'package:list_linker/util/download/download_task_status.dart';
 import 'package:list_linker/util/file_type.dart';
 import 'package:list_linker/util/file_utils.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:list_linker/util/markdown_utils.dart';
 import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/util/proxy.dart';
@@ -24,6 +25,7 @@ import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/util/video_player_util.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/app_slidable.dart';
 import 'package:list_linker/widget/overflow_text.dart';
 import 'package:list_linker/widget/smooth_network_image.dart';
 import 'package:flustars/flustars.dart';
@@ -52,8 +54,8 @@ class DownloadManagerScreen extends StatelessWidget {
     DownloadManagerController controller = Get.put(DownloadManagerController());
     Widget scaffold = AlistScaffold(
       appbarTitle: Text(Intl.downloadManagerScreen_title.tr),
-      body:
-          SlidableAutoCloseBehavior(child: _buildDownloadListView(context, controller)),
+      body: SlidableAutoCloseBehavior(
+          child: _buildDownloadListView(context, controller)),
       appbarActions: [_menuMoreIcon(controller)],
     );
     return DownloadManagerAnchor(
@@ -63,7 +65,8 @@ class DownloadManagerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDownloadListView(BuildContext context, DownloadManagerController controller) {
+  Widget _buildDownloadListView(
+      BuildContext context, DownloadManagerController controller) {
     return Obx(
       () => controller._downloadList.isEmpty
           ? Center(
@@ -141,10 +144,17 @@ class DownloadManagerScreen extends StatelessWidget {
       subtitle: OverflowText(text: downloadItem.status.value),
       trailing: _buildTrailing(controller, downloadItem),
       onTap: () => controller.onTap(downloadItem),
-      onLongPress: onLongPress,
+      onLongPress: onLongPress == null
+          ? null
+          : () {
+              HapticsHelper.medium();
+              onLongPress!();
+            },
     );
-    return Slidable(
+    return AppSlidable(
       key: Key(downloadItem.id.toString()),
+      hintPreferenceKey:
+          index == 0 ? AlistConstant.downloadsSlidableHintShown : null,
       endActionPane: ActionPane(
         motion: const DrawerMotion(),
         extentRatio: canSave ? 0.5 : 0.25,

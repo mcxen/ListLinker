@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show FontFeature;
 
 import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/util/download/download_manager.dart';
+import 'package:list_linker/util/haptics_helper.dart';
+import 'package:list_linker/util/number_utils.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -16,31 +20,47 @@ class CacheManagerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var controller = Get.put(CacheManagerController());
+    const valueStyle = TextStyle(
+      fontFeatures: [FontFeature.tabularFigures()],
+    );
     return AlistScaffold(
       appbarTitle: Text(Intl.screenName_cacheManagement.tr),
       body: SingleChildScrollView(
+        padding: WidgetUtils.listViewPadding(context),
         child: Column(
           children: [
             ListTile(
               title: Text(Intl.cacheManagement_imageCache.tr),
-              subtitle: Obx(() => Text(controller.imageCacheSizeStr.value)),
+              subtitle: Obx(() => Text(
+                    controller.imageCacheSizeStr.value,
+                    style: valueStyle,
+                  )),
               onTap: () {
+                HapticsHelper.heavy();
                 controller.clearImageCache();
               },
             ),
             const Divider(),
             ListTile(
               title: Text(Intl.cacheManagement_audioCache.tr),
-              subtitle: Obx(() => Text(controller.audioCacheSizeStr.value)),
+              subtitle: Obx(() => Text(
+                    controller.audioCacheSizeStr.value,
+                    style: valueStyle,
+                  )),
               onTap: () {
+                HapticsHelper.heavy();
                 controller.clearAudioCache();
               },
             ),
             const Divider(),
             ListTile(
               title: Text(Intl.cacheManagement_otherCache.tr),
-              subtitle: Obx(() => Text(controller.otherCacheSizeStr.value)),
+              subtitle: Obx(() => Text(
+                    controller.otherCacheSizeStr.value,
+                    style: valueStyle,
+                  )),
               onTap: () {
+                HapticsHelper.heavy();
                 controller.clearOtherCache();
               },
             ),
@@ -145,13 +165,9 @@ class CacheManagerController extends GetxController {
     const int gigabyte = megabyte * 1024;
 
     String format(double value) {
-      if (value.truncate() == value) {
-        // 是整数，不保留小数
-        return value.toInt().toString();
-      } else {
-        // 保留一位小数
-        return value.toStringAsFixed(1);
-      }
+      return value.humanizedCount(
+        decimalDigits: value.truncate() == value ? 0 : 1,
+      );
     }
 
     if (bytes < kilobyte) {

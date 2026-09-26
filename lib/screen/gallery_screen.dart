@@ -338,6 +338,42 @@ class _ImageContainer extends StatelessWidget {
   final String url;
   final String? localPath;
 
+  Widget? _galleryLoadState(
+    BuildContext context,
+    ExtendedImageState state,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    switch (state.extendedImageLoadState) {
+      case LoadState.loading:
+        return ColoredBox(color: scheme.surfaceContainerHighest);
+      case LoadState.failed:
+        return ColoredBox(
+          color: scheme.surfaceContainerHighest,
+          child: Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 28,
+              color: scheme.outline,
+            ),
+          ),
+        );
+      case LoadState.completed:
+        if (state.wasSynchronouslyLoaded || disableAnimations) {
+          return state.completedWidget;
+        }
+        return TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          builder: (context, opacity, child) {
+            return Opacity(opacity: opacity, child: child);
+          },
+          child: state.completedWidget,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     var gestureConfig = GestureConfig(
@@ -358,6 +394,8 @@ class _ImageContainer extends StatelessWidget {
       return ExtendedImage.network(
         url,
         fit: BoxFit.contain,
+        cache: true,
+        loadStateChanged: (state) => _galleryLoadState(context, state),
         mode: ExtendedImageMode.gesture,
         initGestureConfigHandler: (state) {
           return gestureConfig;
@@ -376,6 +414,8 @@ class _ImageContainer extends StatelessWidget {
     return ExtendedImage.network(
       Uri.file(localPath!).toString(),
       fit: BoxFit.contain,
+      cache: true,
+      loadStateChanged: (state) => _galleryLoadState(context, state),
       mode: ExtendedImageMode.gesture,
       initGestureConfigHandler: (state) {
         return gestureConfig;

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show FontFeature;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -12,10 +13,13 @@ import 'package:list_linker/screen/pdf_reader_screen.dart';
 import 'package:list_linker/screen/video_player_screen.dart';
 import 'package:list_linker/util/file_type.dart';
 import 'package:list_linker/util/file_utils.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:list_linker/util/local_file_service.dart';
 import 'package:list_linker/util/named_router.dart';
+import 'package:list_linker/util/number_utils.dart';
 import 'package:list_linker/util/video_player_util.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/edge_fade.dart';
 import 'package:list_linker/widget/app_ui.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path/path.dart' as p;
@@ -379,6 +383,8 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocus,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
               decoration: InputDecoration(
                 hintText: Intl.fileManager_searchHint.tr,
                 prefixIcon: const Icon(Icons.search_rounded, size: 19),
@@ -441,22 +447,25 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
       current = p.join(current, segment);
       crumbs.add((label: segment, path: current));
     }
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      reverse: true,
-      child: Row(
-        children: [
-          for (var index = 0; index < crumbs.length; index++) ...[
-            _BreadcrumbButton(
-              icon: index == 0 ? Icons.folder_special_rounded : null,
-              label: crumbs[index].label,
-              selected: index == crumbs.length - 1,
-              onTap: () => _navigateTo(crumbs[index].path),
-            ),
-            if (index != crumbs.length - 1)
-              const Icon(Icons.chevron_right_rounded, size: 18),
+    return EdgeFade(
+      axis: Axis.horizontal,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        reverse: true,
+        child: Row(
+          children: [
+            for (var index = 0; index < crumbs.length; index++) ...[
+              _BreadcrumbButton(
+                icon: index == 0 ? Icons.folder_special_rounded : null,
+                label: crumbs[index].label,
+                selected: index == crumbs.length - 1,
+                onTap: () => _navigateTo(crumbs[index].path),
+              ),
+              if (index != crumbs.length - 1)
+                const Icon(Icons.chevron_right_rounded, size: 18),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -732,6 +741,7 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
         ),
         Expanded(
           child: ListView.builder(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: EdgeInsets.only(
               bottom: 12 + MediaQuery.viewPaddingOf(context).bottom,
             ),
@@ -854,6 +864,7 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
     final width = MediaQuery.sizeOf(context).width - paneWidth;
     final columns = (width / 150).floor().clamp(2, 10);
     return GridView.builder(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.fromLTRB(
         14,
         10,
@@ -953,10 +964,11 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${_visibleEntries.length} ${Intl.fileManager_items.tr}',
+                    '${_visibleEntries.length.humanizedCount()} ${Intl.fileManager_items.tr}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ],
               )
@@ -1109,8 +1121,10 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
       child: Row(
         children: [
           Text(
-            '${_visibleEntries.length} ${Intl.fileManager_items.tr}$selectionText',
-            style: Theme.of(context).textTheme.bodySmall,
+            '${_visibleEntries.length.humanizedCount()} ${Intl.fileManager_items.tr}$selectionText',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
           const Spacer(),
           if (_busyLabel != null)
@@ -1369,6 +1383,7 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
   }
 
   void _toggleEntry(LocalFileEntry entry) {
+    HapticsHelper.soft();
     setState(() {
       _selected.contains(entry.path)
           ? _selected.remove(entry.path)
@@ -1692,6 +1707,7 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
           ? 0
           : initialValue.length - p.extension(initialValue).length,
     );
+    FocusManager.instance.primaryFocus?.unfocus();
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1699,6 +1715,7 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          textInputAction: TextInputAction.done,
           decoration: InputDecoration(hintText: Intl.fileManager_nameHint.tr),
           onSubmitted: (value) => Navigator.pop(context, value),
         ),
@@ -1723,6 +1740,7 @@ class _LocalStorageBrowserScreenState extends State<LocalStorageBrowserScreen> {
     required String body,
     String? confirmLabel,
   }) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(

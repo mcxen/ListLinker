@@ -41,10 +41,14 @@ import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/util/video_player_util.dart';
 import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/adaptive_sheet_page.dart';
+import 'package:list_linker/widget/adaptive_sheet_route.dart';
+import 'package:list_linker/widget/app_slidable.dart';
 import 'package:list_linker/widget/config_file_name_max_lines_dialog.dart';
 import 'package:list_linker/widget/file_details_dialog.dart';
 import 'package:list_linker/widget/file_list_item_view.dart';
 import 'package:list_linker/widget/overflow_text.dart';
+import 'package:list_linker/widget/spring_bottom_sheet.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:floor/floor.dart';
@@ -674,138 +678,133 @@ class _FileListScreenState extends State<FileListScreen>
     if (!mounted) {
       return;
     }
-    showModalBottomSheet(
-        context: Get.context!,
-        isScrollControlled: true,
-        builder: (context) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: SafeArea(
-              child: Wrap(
-                children: [
-                  FileListItemView(
-                    icon: FileUtils.getFileIcon(file.isDir, file.name),
-                    fileName: file.name,
-                    thumbnail: file.thumb,
-                    time: file.modified,
-                    sizeDesc: file.sizeDesc,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _onFileTap(context, index, true);
-                    },
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.open_in_new),
-                    title: Text(Intl.fileList_menu_open.tr),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _onFileTap(context, index, true);
-                    },
-                  ),
-                  if (!file.isDir)
-                    ListTile(
-                      leading: const Icon(Icons.link_rounded),
-                      title: Text(Intl.fileList_menu_copyLink.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _copyFileLink(file);
-                      },
-                    ),
-                  if (!file.isDir)
-                    ListTile(
-                      leading: const Icon(Icons.download_rounded),
-                      title: Text(Intl.fileList_menu_download.tr),
-                      onTap: () async {
-                        Navigator.pop(context);
-                        final task =
-                            await DownloadManager.instance.enqueueFile(file);
-                        if (task != null) {
-                          var isFirstTimeDownload = SpUtil.getBool(
-                            AlistConstant.isFirstTimeDownload,
-                            defValue: true,
-                          );
-                          if (isFirstTimeDownload == true) {
-                            SpUtil.putBool(
-                                AlistConstant.isFirstTimeDownload, false);
-                            _showDownloadTipDialog();
-                          } else {
-                            SmartDialog.showToast(
-                                Intl.downloadManager_tips_addToQueue.tr);
-                          }
-                        }
-                      },
-                    ),
-                  if (_hasWritePermission)
-                    ListTile(
-                      leading: const Icon(Icons.file_copy),
-                      title: Text(Intl.fileList_menu_copy.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _copyMoveStart(file, true);
-                      },
-                    ),
-                  if (_hasWritePermission)
-                    ListTile(
-                      leading: const Icon(Icons.drive_file_move_rounded),
-                      title: Text(Intl.fileList_menu_move.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _copyMoveStart(file, false);
-                      },
-                    ),
-                  if (_hasWritePermission)
-                    ListTile(
-                      leading:
-                          const Icon(Icons.drive_file_rename_outline_rounded),
-                      title: Text(Intl.fileList_menu_rename.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showRenameDialog(file);
-                      },
-                    ),
-                  if (favorite == null)
-                    ListTile(
-                      leading: const Icon(Icons.favorite_border_rounded),
-                      title: Text(Intl.fileList_menu_favorite.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _favorite(file, true);
-                      },
-                    ),
-                  if (favorite != null)
-                    ListTile(
-                      leading: const Icon(
-                        Icons.favorite_rounded,
-                      ),
-                      title: Text(Intl.fileList_menu_cancel_favorite.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _favorite(file, false);
-                      },
-                    ),
-                  if (_hasWritePermission)
-                    ListTile(
-                      leading: const Icon(Icons.delete),
-                      title: Text(Intl.fileList_menu_delete.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _tryDeleteFile(file);
-                      },
-                    ),
-                  ListTile(
-                    leading: const Icon(Icons.info),
-                    title: Text(Intl.fileList_menu_details.tr),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showDetailsDialog(widgetContext, file);
-                    },
-                  ),
-                ],
+    Navigator.of(Get.context!).push<void>(
+      AdaptiveSheetPage(
+        child: Builder(
+          builder: (context) => Wrap(
+            children: [
+              FileListItemView(
+                icon: FileUtils.getFileIcon(file.isDir, file.name),
+                fileName: file.name,
+                thumbnail: file.thumb,
+                time: file.modified,
+                sizeDesc: file.sizeDesc,
+                onTap: () {
+                  Navigator.pop(context);
+                  _onFileTap(context, index, true);
+                },
               ),
-            ),
-          );
-        });
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.open_in_new),
+                title: Text(Intl.fileList_menu_open.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  _onFileTap(context, index, true);
+                },
+              ),
+              if (!file.isDir)
+                ListTile(
+                  leading: const Icon(Icons.link_rounded),
+                  title: Text(Intl.fileList_menu_copyLink.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _copyFileLink(file);
+                  },
+                ),
+              if (!file.isDir)
+                ListTile(
+                  leading: const Icon(Icons.download_rounded),
+                  title: Text(Intl.fileList_menu_download.tr),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final task =
+                        await DownloadManager.instance.enqueueFile(file);
+                    if (task != null) {
+                      var isFirstTimeDownload = SpUtil.getBool(
+                        AlistConstant.isFirstTimeDownload,
+                        defValue: true,
+                      );
+                      if (isFirstTimeDownload == true) {
+                        SpUtil.putBool(
+                            AlistConstant.isFirstTimeDownload, false);
+                        _showDownloadTipDialog();
+                      } else {
+                        SmartDialog.showToast(
+                            Intl.downloadManager_tips_addToQueue.tr);
+                      }
+                    }
+                  },
+                ),
+              if (_hasWritePermission)
+                ListTile(
+                  leading: const Icon(Icons.file_copy),
+                  title: Text(Intl.fileList_menu_copy.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _copyMoveStart(file, true);
+                  },
+                ),
+              if (_hasWritePermission)
+                ListTile(
+                  leading: const Icon(Icons.drive_file_move_rounded),
+                  title: Text(Intl.fileList_menu_move.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _copyMoveStart(file, false);
+                  },
+                ),
+              if (_hasWritePermission)
+                ListTile(
+                  leading: const Icon(Icons.drive_file_rename_outline_rounded),
+                  title: Text(Intl.fileList_menu_rename.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showRenameDialog(file);
+                  },
+                ),
+              if (favorite == null)
+                ListTile(
+                  leading: const Icon(Icons.favorite_border_rounded),
+                  title: Text(Intl.fileList_menu_favorite.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _favorite(file, true);
+                  },
+                ),
+              if (favorite != null)
+                ListTile(
+                  leading: const Icon(
+                    Icons.favorite_rounded,
+                  ),
+                  title: Text(Intl.fileList_menu_cancel_favorite.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _favorite(file, false);
+                  },
+                ),
+              if (_hasWritePermission)
+                ListTile(
+                  leading: const Icon(Icons.delete),
+                  title: Text(Intl.fileList_menu_delete.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _tryDeleteFile(file);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.info),
+                title: Text(Intl.fileList_menu_details.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDetailsDialog(widgetContext, file);
+                },
+              ),
+            ],
+          ),
+        ),
+      ).asAdaptiveSheetRoute<void>(),
+    );
   }
 
   void _copyMoveStart(FileItemVO file, bool isCopy) {
@@ -815,13 +814,12 @@ class _FileListScreenState extends State<FileListScreen>
       originalFolder = "/";
     }
 
-    var future = Get.bottomSheet(
+    var future = Navigator.of(Get.context!).push<Map<String, bool>>(
       FileCopyMoveDialog(
         originalFolder: originalFolder,
         names: [file.name],
         isCopy: isCopy,
-      ),
-      isScrollControlled: true,
+      ).asAdaptiveSheetRoute<Map<String, bool>>(),
     );
     future.then((value) {
       if (value != null && value["result"] == true) {
@@ -1088,51 +1086,13 @@ class _FileListView extends StatefulWidget {
   State<_FileListView> createState() => _FileListViewState();
 }
 
-class _FileListViewState extends State<_FileListView>
-    with SingleTickerProviderStateMixin {
-  late final SlidableController _slidableHintController;
-  bool _hintScheduled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _slidableHintController = SlidableController(this);
-  }
-
-  @override
-  void dispose() {
-    _slidableHintController.dispose();
-    super.dispose();
-  }
-
-  void _maybeShowSlidableHint() {
-    if (_hintScheduled || widget.files.isEmpty) return;
-    if (SpUtil.getBool(AlistConstant.slidableHintShown) == true) return;
-    _hintScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (!mounted) return;
-      try {
-        _slidableHintController.openEndActionPane();
-        await Future.delayed(const Duration(milliseconds: 900));
-        if (!mounted) return;
-        _slidableHintController.close();
-      } catch (_) {
-        // Controller may not be attached yet; skip quietly.
-      }
-      await SpUtil.putBool(AlistConstant.slidableHintShown, true);
-    });
-  }
-
+class _FileListViewState extends State<_FileListView> {
   @override
   Widget build(BuildContext context) {
     var itemCount = widget.files.length;
     if (widget.readme != null && widget.readme!.isNotEmpty) {
       itemCount++;
     }
-    _maybeShowSlidableHint();
-
     return SmartRefresher(
       controller: widget.refreshController,
       onRefresh: widget.refreshCallback,
@@ -1163,9 +1123,10 @@ class _FileListViewState extends State<_FileListView>
           } else {
             // it's file
             final file = widget.files[index];
-            return Slidable(
+            return AppSlidable(
               key: Key(file.path),
-              controller: index == 0 ? _slidableHintController : null,
+              hintPreferenceKey:
+                  index == 0 ? AlistConstant.slidableHintShown : null,
               endActionPane: ActionPane(
                 motion: const DrawerMotion(),
                 extentRatio: widget.hasWritePermission ? 0.5 : 0.25,
@@ -1227,9 +1188,8 @@ class _FileListViewState extends State<_FileListView>
   }
 }
 
-
 _showDetailsDialog(BuildContext context, FileItemVO file) {
-  showModalBottomSheet(
+  showSpringBottomSheet<void>(
     context: Get.context!,
     builder: (context) => FileDetailsDialog(
       name: file.name,

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 
 class AlistCheckBox extends StatelessWidget {
   final bool? value;
@@ -14,19 +15,24 @@ class AlistCheckBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void handleChanged(bool? nextValue) {
+      HapticsHelper.soft();
+      onChanged?.call(nextValue);
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         CupertinoCheckbox(
           value: value,
           // materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          onChanged: onChanged,
+          onChanged: onChanged == null ? null : handleChanged,
         ),
         GestureDetector(
           onTap: onChanged == null
               ? null
               : () {
-                  onChanged!(!(value ?? false));
+                  handleChanged(!(value ?? false));
                 },
           child: Text(text),
         ),

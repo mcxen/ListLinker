@@ -1,4 +1,5 @@
 import 'package:list_linker/l10n/intl_keys.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -37,6 +38,8 @@ class _DirectorPasswordDialogState extends State<DirectorPasswordDialog> {
             obscureText: true,
             focusNode: widget.focusNode,
             autofocus: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _onConfirm(context),
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               isCollapsed: true,
@@ -50,18 +53,11 @@ class _DirectorPasswordDialogState extends State<DirectorPasswordDialog> {
               Checkbox(
                   value: _isRememberPassword,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  onChanged: (checked) {
-                    setState(() {
-                      _isRememberPassword = checked ?? false;
-                    });
-                  }),
+                  onChanged: (checked) =>
+                      _setRememberPassword(checked ?? false)),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  setState(() {
-                    _isRememberPassword = !_isRememberPassword;
-                  });
-                },
+                onTap: () => _setRememberPassword(!_isRememberPassword),
                 child: Text(Intl.directoryPasswordDialog_remember.tr),
               ),
             ],
@@ -96,5 +92,10 @@ class _DirectorPasswordDialogState extends State<DirectorPasswordDialog> {
     }
     widget.directorPasswordCallback(password, _isRememberPassword);
     SmartDialog.dismiss();
+  }
+
+  void _setRememberPassword(bool value) {
+    HapticsHelper.soft();
+    setState(() => _isRememberPassword = value);
   }
 }

@@ -18,7 +18,20 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="ListLinker is a cross-platform file manager for OpenList and Alist servers.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="ListLinker – OpenList and Alist file manager">
+  <meta property="og:description" content="Browse, manage, and play files from OpenList and Alist across mobile, desktop, and web.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/mcxen/ListLinker/main/web/og-image.png">
+  <meta property="og:url" content="https://github.com/mcxen/ListLinker">
+  <meta property="og:type" content="website">
+
+  <!-- X / Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ListLinker – OpenList and Alist file manager">
+  <meta name="twitter:description" content="Browse, manage, and play files from OpenList and Alist across mobile, desktop, and web.">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/mcxen/ListLinker/main/web/og-image.png">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,31 +42,14 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>alist</title>
+  <title>ListLinker</title>
   <link rel="manifest" href="manifest.json">
-
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    var serviceWorkerVersion = null;
-  </script>
-  <!-- This script adds the flutter initialization JS code -->
-  <script src="flutter.js" defer></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <script>
-    window.addEventListener('load', function(ev) {
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
-  </script>
+  <div class="progress-container" role="progressbar" aria-label="Loading ListLinker">
+    <div class="progress-bar"></div>
+  </div>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

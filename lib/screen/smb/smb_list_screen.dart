@@ -164,6 +164,7 @@ class SmbListScreen extends StatelessWidget {
           content: SizedBox(
             width: 360,
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -198,6 +199,7 @@ class SmbListScreen extends StatelessWidget {
                     label: Intl.smb_label_password.tr,
                     obscureText: true,
                     textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => Navigator.pop(ctx, true),
                   ),
                 ],
               ),

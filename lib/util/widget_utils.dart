@@ -6,12 +6,20 @@ class WidgetUtils {
   }
 
   /// Bottom inset matching the system navigation bar for list content padding.
-  static double listBottomInset(BuildContext context) {
-    return MediaQuery.viewPaddingOf(context).bottom;
+  static double listBottomInset(
+    BuildContext context, {
+    double minimum = 16,
+  }) {
+    final viewPadding = MediaQuery.viewPaddingOf(context).bottom;
+    return viewPadding > minimum ? viewPadding : minimum;
   }
 
-  static EdgeInsets listViewPadding(BuildContext context,
-      {double extraBottom = 0}) {
-    return EdgeInsets.only(bottom: listBottomInset(context) + extraBottom);
+  static EdgeInsets listViewPadding(
+    BuildContext context, {
+    double extraBottom = 0,
+  }) {
+    return EdgeInsets.only(
+      bottom: listBottomInset(context) + extraBottom,
+    );
   }
 }

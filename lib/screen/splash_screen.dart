@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:list_linker/database/alist_database_controller.dart';
 import 'package:list_linker/generated/images.dart';
 import 'package:list_linker/l10n/intl_keys.dart';
@@ -82,7 +84,7 @@ class _SplashScreenState extends State<SplashScreen> {
       await Future.delayed(const Duration(milliseconds: 17));
     }
     final ctx = _context!;
-    const assets = <String>[
+    const criticalAssets = <String>[
       Images.logo,
       Images.iconArrowRight,
       Images.fileTypeFolder,
@@ -101,8 +103,31 @@ class _SplashScreenState extends State<SplashScreen> {
       Images.settingsScreenAbout,
       Images.accountIcon,
     ];
+    const deferredAssets = <String>[
+      Images.accountIconChoosed,
+      Images.fileTypeApk,
+      Images.fileTypeCode,
+      Images.fileTypeDocment,
+      Images.fileTypeExcel,
+      Images.fileTypeMd,
+      Images.fileTypePpt,
+      Images.fileTypeWord,
+      Images.fileTypeZip,
+      Images.icInfuse,
+      Images.icLauncher,
+      Images.icNplayer,
+      Images.icVlc,
+      Images.iconFfwd,
+      Images.settingsScreenDonate,
+      Images.settingsScreenPrivacyPolicy,
+    ];
     await Future.wait(
-      assets.map((path) => precacheImage(AssetImage(path), ctx)),
+      criticalAssets.map((path) => precacheImage(AssetImage(path), ctx)),
+    );
+    unawaited(
+      Future.wait(
+        deferredAssets.map((path) => precacheImage(AssetImage(path), ctx)),
+      ),
     );
   }
 

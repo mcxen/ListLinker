@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/screen/video_player_screen.dart';
+import 'package:list_linker/util/date_time_utils.dart';
 import 'package:list_linker/util/file_utils.dart';
 import 'package:list_linker/util/proxy.dart';
 import 'package:media_kit/media_kit.dart';
@@ -589,7 +590,12 @@ class _DesktopVideoPlayerScreenState extends State<DesktopVideoPlayerScreen> {
         '${_formatDuration(positions.first)} — ${_formatDuration(positions.last)}',
       ),
       MapEntry('SOURCE', _contactSheetSourceLabel()),
-      MapEntry('GENERATED', _formatInfoDate(generatedAt)),
+      MapEntry(
+        'GENERATED',
+        generatedAt.formattedDateTime(
+          ui.PlatformDispatcher.instance.locale.toString(),
+        ),
+      ),
     ];
     var infoY = outerPadding + 96;
     for (final field in infoFields) {
@@ -1293,12 +1299,6 @@ class _DesktopVideoPlayerScreenState extends State<DesktopVideoPlayerScreen> {
     if (_current.localPath?.isNotEmpty == true) return 'Local';
     if (_current.playUrl?.isNotEmpty == true) return 'Network stream';
     return 'Remote';
-  }
-
-  String _formatInfoDate(DateTime value) {
-    String twoDigits(int number) => number.toString().padLeft(2, '0');
-    return '${value.year}-${twoDigits(value.month)}-${twoDigits(value.day)} '
-        '${twoDigits(value.hour)}:${twoDigits(value.minute)}:${twoDigits(value.second)}';
   }
 
   String _formatDuration(Duration duration) {

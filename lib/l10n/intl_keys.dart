@@ -1,5 +1,7 @@
 class Intl {
   static const String appName = "appName";
+  static const String navigation_collapse = "navigation_collapse";
+  static const String navigation_expand = "navigation_expand";
   static const String screenName_login = "screenName_login";
   static const String screenName_fileListRoot = "screenName_fileListRoot";
   static const String screenName_settings = "screenName_settings";

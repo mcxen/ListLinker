@@ -3,6 +3,7 @@ import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/net/dio_utils.dart';
 import 'package:list_linker/util/global.dart';
 import 'package:list_linker/util/named_router.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:dio/dio.dart';
 import 'package:list_linker/widget/smooth_network_image.dart';
@@ -96,6 +97,7 @@ class _PageContainerState extends State<_PageContainer> {
     }
 
     return ListView.builder(
+      padding: WidgetUtils.listViewPadding(context),
       itemBuilder: (context, index) {
         final itemData = _donateConfig![index];
         final List<String> imageUrls =

@@ -46,6 +46,10 @@ class _FileRenameDialogState extends State<FileRenameDialog> {
         focusNode: widget.focusNode,
         autofocus: true,
         controller: widget.controller,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) {
+          if (_hasContent) widget.onConfirm?.call();
+        },
         decoration: InputDecoration(
           border: const OutlineInputBorder(),
           hintText: Intl.fileRenameDialog_hint.tr,

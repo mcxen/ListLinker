@@ -6,7 +6,9 @@ import 'package:list_linker/database/alist_database_controller.dart';
 import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/util/file_utils.dart';
 import 'package:list_linker/util/lock_caching_audio_source.dart';
+import 'package:list_linker/util/number_utils.dart';
 import 'package:list_linker/util/user_controller.dart';
+import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
 import 'package:list_linker/widget/slider.dart';
 import 'package:dio/dio.dart';
@@ -190,12 +192,16 @@ class AudioPlayerScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 child: Text(
-                  "${Intl.audioPlayListDialog_title.tr}(${controller._audios.length})",
-                  style: Theme.of(context).textTheme.titleMedium,
+                  "${Intl.audioPlayListDialog_title.tr}(${controller._audios.length.humanizedCount()})",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
               Expanded(
-                  child: Obx(() => _playList(scrollController, controller))),
+                  child: Obx(
+                () => _playList(context, scrollController, controller),
+              )),
             ],
           );
         });
@@ -207,10 +213,14 @@ class AudioPlayerScreen extends StatelessWidget {
     });
   }
 
-  ListView _playList(AutoScrollController scrollController,
-      AudioPlayerScreenController controller) {
+  ListView _playList(
+    BuildContext context,
+    AutoScrollController scrollController,
+    AudioPlayerScreenController controller,
+  ) {
     return ListView.separated(
       controller: scrollController,
+      padding: WidgetUtils.listViewPadding(context),
       itemBuilder: (context, index) {
         return _buildPlayListItem(scrollController, controller, context, index);
       },

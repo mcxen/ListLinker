@@ -7,9 +7,11 @@ import 'package:list_linker/l10n/intl_keys.dart';
 import 'package:list_linker/net/dio_utils.dart';
 import 'package:list_linker/router.dart';
 import 'package:list_linker/util/constant.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:list_linker/util/named_router.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/app_slidable.dart';
 import 'package:flustars/flustars.dart';
 import 'package:list_linker/util/widget_utils.dart';
 import 'package:flutter/material.dart';
@@ -51,16 +53,18 @@ class AccountScreen extends StatelessWidget {
       padding: WidgetUtils.listViewPadding(context),
       itemBuilder: (context, index) {
         final Server itemData = controller.accountList[index];
-        return Obx(() => _listItem(itemData, controller));
+        return Obx(() => _listItem(itemData, controller, index));
       },
       itemCount: controller.accountList.length,
     );
     return SlidableAutoCloseBehavior(child: listView);
   }
 
-  _ListItem _listItem(Server itemData, AccountScreenController controller) {
+  _ListItem _listItem(
+      Server itemData, AccountScreenController controller, int index) {
     return _ListItem(
       data: itemData,
+      index: index,
       currentAccount: controller.currentAccount.value,
       list: controller.accountList,
       handleDeleteItem: controller._handleDeleteItem,
@@ -146,6 +150,7 @@ class AccountScreenController extends GetxController {
           TextButton(
             onPressed: () {
               SmartDialog.dismiss();
+              HapticsHelper.heavy();
               _deleteAccount(list, item);
             },
             child: Text(Intl.deleteAccountDialog_btn_ok.tr),
@@ -189,6 +194,7 @@ class AccountScreenController extends GetxController {
         final Server itemData = accountList[index];
         return _ListItem(
           data: itemData,
+          index: index,
           currentAccount: currentAccount.value,
           list: accountList,
           handleDeleteItem: _handleDeleteItem,
@@ -262,6 +268,7 @@ class _ListItem extends StatelessWidget {
   const _ListItem({
     Key? key,
     required this.data,
+    required this.index,
     required this.currentAccount,
     required this.list,
     required this.handleDeleteItem,
@@ -269,6 +276,7 @@ class _ListItem extends StatelessWidget {
   }) : super(key: key);
 
   final Server data;
+  final int index;
   final Server? currentAccount;
   final List<Server>? list;
   final Function handleDeleteItem;
@@ -277,8 +285,10 @@ class _ListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     LogUtil.d("id=${data.id?.toString() ?? ""}");
-    return Slidable(
+    return AppSlidable(
       key: Key(data.id?.toString() ?? ""),
+      hintPreferenceKey:
+          index == 0 ? AlistConstant.accountsSlidableHintShown : null,
       endActionPane: ActionPane(
         motion: const DrawerMotion(),
         extentRatio: 0.25,

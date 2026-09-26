@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:list_linker/generated/images.dart';
 import 'package:list_linker/l10n/intl_keys.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:list_linker/util/log_utils.dart';
 import 'package:list_linker/widget/slider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -650,6 +651,7 @@ class AlistPlayerSkinState extends State<AlistPlayerSkin> {
 
   Widget _buildContainer(BuildContext context) {
     Widget widget = GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: _cancelAndRestartTimer,
       onDoubleTap: _onDoubleTap(),
       onVerticalDragDown: _onVerticalDragDown(),
@@ -904,6 +906,7 @@ class AlistPlayerSkinState extends State<AlistPlayerSkin> {
       children: [
         Expanded(
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () {
               _cancelAndRestartTimer();
             },
@@ -1008,6 +1011,7 @@ class AlistPlayerSkinState extends State<AlistPlayerSkin> {
                 _playing &&
                 _duration.inMilliseconds > 0 &&
                 _rate < 2.0) {
+              HapticsHelper.medium();
               setState(() {
                 _longPressRating = true;
               });
@@ -1208,10 +1212,10 @@ class HorizontalDragIndicator extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text("$currentPosStr / $durationStr",
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(color: Colors.white)),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  )),
               Padding(
                 padding: const EdgeInsets.only(top: 5),
                 child: SizedBox(
@@ -1368,8 +1372,10 @@ class AudioTracSelectorDialog extends StatelessWidget {
     List<Widget> widgets = [];
     for (var i = 0; i < audioTracks.length; i++) {
       Widget widget = GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           if (index != i) {
+            HapticsHelper.selection();
             callback(i);
           }
         },
@@ -1381,7 +1387,8 @@ class AudioTracSelectorDialog extends StatelessWidget {
               Checkbox(
                   value: index == i,
                   onChanged: (checked) {
-                    if (checked == true) {
+                    if (checked == true && index != i) {
+                      HapticsHelper.selection();
                       callback(i);
                     }
                   }),

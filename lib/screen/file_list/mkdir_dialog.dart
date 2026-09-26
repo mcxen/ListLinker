@@ -46,6 +46,10 @@ class _MkdirDialogState extends State<MkdirDialog> {
         focusNode: widget.focusNode,
         autofocus: true,
         controller: widget.controller,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) {
+          if (_hasContent) widget.onConfirm?.call();
+        },
         decoration: InputDecoration(
           border: const OutlineInputBorder(),
           hintText: Intl.mkdirDialog_hint.tr,

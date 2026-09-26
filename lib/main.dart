@@ -13,14 +13,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:media_kit/media_kit.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import 'database/alist_database_controller.dart';
 import 'generated/color_schemes.g.dart';
+import 'widget/app_page_transitions.dart';
+import 'widget/route_title.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting();
   MediaKit.ensureInitialized();
   // sp初始化
   await SpUtil.getInstance();
@@ -52,6 +57,7 @@ Future<void> main() async {
       ),
     );
   };
+  intl.Intl.defaultLocale = PlatformDispatcher.instance.locale.toLanguageTag();
   runApp(const MyApp());
 }
 
@@ -68,7 +74,15 @@ class MyApp extends StatelessWidget {
       getPages: AlistRouter.screens,
       builder: _routerBuilder,
       navigatorObservers: [FlutterSmartDialog.observer],
-      defaultTransition: Transition.cupertino,
+      routingCallback: (routing) {
+        final route = routing?.current;
+        if (route != null && route.isNotEmpty) {
+          currentRouteName.value = route;
+        }
+      },
+      defaultTransition: kIsWeb || GetPlatform.isDesktop
+          ? Transition.noTransition
+          : Transition.cupertino,
       scrollBehavior: AlistScrollBehavior(),
       title: "ALClient",
       theme: _lightTheme(context),
@@ -97,7 +111,9 @@ class MyApp extends StatelessWidget {
               failedText: Intl.pullRefresh_refreshFailedText.tr,
             );
           },
-          child: smartDialogInit(context, widget)),
+          child: RouteTitle(
+            child: smartDialogInit(context, widget),
+          )),
     );
   }
 
@@ -105,6 +121,7 @@ class MyApp extends StatelessWidget {
     return ThemeData(
       useMaterial3: true,
       colorScheme: darkColorScheme,
+      pageTransitionsTheme: appPageTransitionsTheme,
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: darkColorScheme.primary,
         selectionColor: darkColorScheme.primary.withOpacity(0.35),
@@ -135,6 +152,7 @@ class MyApp extends StatelessWidget {
       useMaterial3: true,
       hintColor: const Color(0xFFBBBBBB),
       colorScheme: lightColorScheme,
+      pageTransitionsTheme: appPageTransitionsTheme,
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: lightColorScheme.primary,
         selectionColor: lightColorScheme.primary.withOpacity(0.3),

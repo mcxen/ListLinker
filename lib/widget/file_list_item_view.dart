@@ -2,6 +2,7 @@ import 'package:list_linker/generated/images.dart';
 import 'package:list_linker/util/file_type.dart';
 import 'package:list_linker/util/file_utils.dart';
 import 'package:list_linker/util/global.dart';
+import 'package:list_linker/util/haptics_helper.dart';
 import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/util/widget_utils.dart';
 import 'package:list_linker/widget/overflow_text.dart';
@@ -77,7 +78,12 @@ class FileListItemView extends StatelessWidget {
             )
           : null,
       onTap: onTap,
-      onLongPress: onMoreIconButtonTap,
+      onLongPress: onMoreIconButtonTap == null
+          ? null
+          : () {
+              HapticsHelper.medium();
+              onMoreIconButtonTap!();
+            },
     );
   }
 

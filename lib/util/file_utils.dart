@@ -5,6 +5,7 @@ import 'package:list_linker/generated/images.dart';
 import 'package:list_linker/l10n/intl_keys.dart' as ikeys;
 import 'package:list_linker/util/constant.dart';
 import 'package:list_linker/util/file_type.dart';
+import 'package:list_linker/util/number_utils.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/cupertino.dart';
@@ -257,7 +258,7 @@ class FileUtils {
       encodedPath = encodedPath.substring(0, encodedPath.length - 1);
     }
     encodedPath = "$encodeBasePath$encodedPath";
-    if(!encodeBasePath.startsWith("/")){
+    if (!encodeBasePath.startsWith("/")) {
       encodedPath = "/$encodedPath";
     }
 
@@ -297,7 +298,7 @@ class FileUtils {
     if (size <= 0) return "0B";
     const suffixes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
     var i = (log(size) / log(1024)).floor();
-    return "${(size / pow(1024, i)).toStringAsFixed(2)}${suffixes[i]}";
+    return "${(size / pow(1024, i)).humanizedCount(decimalDigits: 2)}${suffixes[i]}";
   }
 
   static String getReformatTime(DateTime? modifyTime, String defaultValue) {

@@ -24,8 +24,12 @@ import 'package:list_linker/util/string_utils.dart';
 import 'package:list_linker/util/user_controller.dart';
 import 'package:list_linker/util/video_player_util.dart';
 import 'package:list_linker/widget/alist_scaffold.dart';
+import 'package:list_linker/widget/adaptive_sheet_page.dart';
+import 'package:list_linker/widget/adaptive_sheet_route.dart';
+import 'package:list_linker/widget/app_slidable.dart';
 import 'package:list_linker/widget/file_details_dialog.dart';
 import 'package:list_linker/widget/file_list_item_view.dart';
+import 'package:list_linker/widget/spring_bottom_sheet.dart';
 import 'package:dio/dio.dart';
 import 'package:floor/floor.dart';
 import 'package:flustars/flustars.dart';
@@ -98,7 +102,7 @@ class _RecentsScreenState extends State<RecentsScreen>
         padding: WidgetUtils.listViewPadding(context),
         itemBuilder: (context, item) {
           var record = _list[item];
-          return _fileListItemView(context, record);
+          return _fileListItemView(context, record, item);
         },
         separatorBuilder: (context, item) => const Divider(),
         itemCount: _list.length,
@@ -106,10 +110,13 @@ class _RecentsScreenState extends State<RecentsScreen>
     );
   }
 
-  Widget _fileListItemView(BuildContext context, FileViewingRecord record) {
+  Widget _fileListItemView(
+      BuildContext context, FileViewingRecord record, int index) {
     var createTime = DateTime.fromMillisecondsSinceEpoch(record.createTime);
-    return Slidable(
+    return AppSlidable(
       key: Key(record.path),
+      hintPreferenceKey:
+          index == 0 ? AlistConstant.recentsSlidableHintShown : null,
       endActionPane: ActionPane(
         motion: const DrawerMotion(),
         children: [
@@ -246,7 +253,7 @@ class _RecentsScreenState extends State<RecentsScreen>
 
   _showDetailsDialog(BuildContext context, FileViewingRecord record) {
     var modified = DateTime.fromMillisecondsSinceEpoch(record.modified);
-    showModalBottomSheet(
+    showSpringBottomSheet<void>(
       context: context,
       builder: (context) => FileDetailsDialog(
         name: record.name,
@@ -268,128 +275,123 @@ class _RecentsScreenState extends State<RecentsScreen>
       return;
     }
 
-    showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        builder: (context) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: SafeArea(
-              child: Wrap(
-                children: [
-                  FileListItemView(
-                    icon: FileUtils.getFileIcon(false, record.name),
-                    fileName: record.name,
-                    thumbnail: record.thumb,
-                    time: FileUtils.getReformatTime(modified, ""),
-                    sizeDesc: FileUtils.formatBytes(record.size),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _onFileTap(context, record, true);
-                    },
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.open_in_new),
-                    title: Text(Intl.recentsScreen_menu_open.tr),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _onFileTap(context, record, true);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.folder_rounded),
-                    title: Text(Intl.recentsScreen_menu_showInFolder.tr),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _openFileDirectory(record);
-                    },
-                  ),
-                  if (favorite != null)
-                    ListTile(
-                      leading: const Icon(Icons.favorite_rounded),
-                      title: Text(Intl.fileList_menu_cancel_favorite.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _cancelFavorite(favorite);
-                      },
-                    ),
-                  if (favorite == null)
-                    ListTile(
-                      leading: const Icon(Icons.favorite_outline_rounded),
-                      title: Text(Intl.fileList_menu_favorite.tr),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _favorite(record);
-                      },
-                    ),
-                  ListTile(
-                    leading: const Icon(Icons.link_rounded),
-                    title: Text(Intl.fileList_menu_copyLink.tr),
-                    onTap: () {
-                      Navigator.pop(context);
-                      FileUtils.copyFileLink(record.path, record.sign);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.download_rounded),
-                    title: Text(Intl.fileList_menu_download.tr),
-                    onTap: () async {
-                      Navigator.pop(context);
-
-                      final requestHeaders = <String, dynamic>{};
-                      var limitFrequency = 0;
-                      if (record.provider == "BaiduNetdisk") {
-                        requestHeaders[HttpHeaders.userAgentHeader] =
-                            "pan.baidu.com";
-                      } else if (record.provider == "AliyundriveOpen") {
-                        // 阿里云盘下载请求频率限制为 1s/次
-                        limitFrequency = 1;
-                      }
-                      final task = await DownloadManager.instance.enqueue(
-                          name: record.name,
-                          remotePath: record.remotePath,
-                          sign: record.sign ?? "",
-                          thumb: record.thumb,
-                          requestHeaders: requestHeaders,
-                          limitFrequency: limitFrequency);
-                      if (task != null) {
-                        var isFirstTimeDownload = SpUtil.getBool(
-                          AlistConstant.isFirstTimeDownload,
-                          defValue: true,
-                        );
-                        if (isFirstTimeDownload == true) {
-                          SpUtil.putBool(
-                              AlistConstant.isFirstTimeDownload, false);
-                          _showDownloadTipDialog();
-                        } else {
-                          SmartDialog.showToast(
-                              Intl.downloadManager_tips_addToQueue.tr);
-                        }
-                      }
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.delete),
-                    title: Text(Intl.recentsScreen_menu_delete.tr),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _deleteRecord(record);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.info),
-                    title: Text(Intl.recentsScreen_menu_details.tr),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showDetailsDialog(context, record);
-                    },
-                  ),
-                ],
+    Navigator.of(context).push<void>(
+      AdaptiveSheetPage(
+        child: Builder(
+          builder: (context) => Wrap(
+            children: [
+              FileListItemView(
+                icon: FileUtils.getFileIcon(false, record.name),
+                fileName: record.name,
+                thumbnail: record.thumb,
+                time: FileUtils.getReformatTime(modified, ""),
+                sizeDesc: FileUtils.formatBytes(record.size),
+                onTap: () {
+                  Navigator.pop(context);
+                  _onFileTap(context, record, true);
+                },
               ),
-            ),
-          );
-        });
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.open_in_new),
+                title: Text(Intl.recentsScreen_menu_open.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  _onFileTap(context, record, true);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_rounded),
+                title: Text(Intl.recentsScreen_menu_showInFolder.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openFileDirectory(record);
+                },
+              ),
+              if (favorite != null)
+                ListTile(
+                  leading: const Icon(Icons.favorite_rounded),
+                  title: Text(Intl.fileList_menu_cancel_favorite.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _cancelFavorite(favorite);
+                  },
+                ),
+              if (favorite == null)
+                ListTile(
+                  leading: const Icon(Icons.favorite_outline_rounded),
+                  title: Text(Intl.fileList_menu_favorite.tr),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _favorite(record);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.link_rounded),
+                title: Text(Intl.fileList_menu_copyLink.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  FileUtils.copyFileLink(record.path, record.sign);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.download_rounded),
+                title: Text(Intl.fileList_menu_download.tr),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  final requestHeaders = <String, dynamic>{};
+                  var limitFrequency = 0;
+                  if (record.provider == "BaiduNetdisk") {
+                    requestHeaders[HttpHeaders.userAgentHeader] =
+                        "pan.baidu.com";
+                  } else if (record.provider == "AliyundriveOpen") {
+                    // 阿里云盘下载请求频率限制为 1s/次
+                    limitFrequency = 1;
+                  }
+                  final task = await DownloadManager.instance.enqueue(
+                      name: record.name,
+                      remotePath: record.remotePath,
+                      sign: record.sign ?? "",
+                      thumb: record.thumb,
+                      requestHeaders: requestHeaders,
+                      limitFrequency: limitFrequency);
+                  if (task != null) {
+                    var isFirstTimeDownload = SpUtil.getBool(
+                      AlistConstant.isFirstTimeDownload,
+                      defValue: true,
+                    );
+                    if (isFirstTimeDownload == true) {
+                      SpUtil.putBool(AlistConstant.isFirstTimeDownload, false);
+                      _showDownloadTipDialog();
+                    } else {
+                      SmartDialog.showToast(
+                          Intl.downloadManager_tips_addToQueue.tr);
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete),
+                title: Text(Intl.recentsScreen_menu_delete.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteRecord(record);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.info),
+                title: Text(Intl.recentsScreen_menu_details.tr),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDetailsDialog(context, record);
+                },
+              ),
+            ],
+          ),
+        ),
+      ).asAdaptiveSheetRoute<void>(),
+    );
   }
 
   void _showDownloadTipDialog() {
