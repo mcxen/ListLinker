@@ -55,7 +55,9 @@ dependencies:
   # Native desktop playback (macOS, Windows and Linux).
   media_kit: 1.1.11
   media_kit_video: 1.2.5
-  media_kit_libs_video: ^1.0.7
+  media_kit_libs_macos_video: ^1.1.4
+  media_kit_libs_windows_video: ^1.0.11
+  media_kit_libs_linux: ^1.2.1
   # screen orientation controller
   #  auto_orientation: ^2.2.1
   # Dialog

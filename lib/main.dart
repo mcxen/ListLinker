@@ -26,7 +26,14 @@ import 'widget/route_title.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting();
-  MediaKit.ensureInitialized();
+  // Android/iOS use their own players. Loading desktop mpv here can prevent
+  // runApp from being reached when its native library cannot be loaded.
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.linux)) {
+    MediaKit.ensureInitialized();
+  }
   // sp初始化
   await SpUtil.getInstance();
   configureAppHttpOverrides();
